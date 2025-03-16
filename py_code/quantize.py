@@ -1,0 +1,44 @@
+import torch
+from torch import Tensor
+from typing import Tuple
+from args import args_c
+
+def quantize(delta:Tensor,mask:Tensor,eb:float,args:args_c)->None:
+    mask_positive=(delta>=0) & mask
+    mask_negative=(~mask_positive) & mask
+    mask_num=mask.sum().item()
+    temp_qb=torch.zeros_like(delta,dtype=torch.int)
+    temp_qb[mask_positive]=torch.ceil((delta[mask_positive]-eb)/(2*eb)).int()
+    temp_qb[mask_negative]=torch.floor((delta[mask_negative]+eb)/(2*eb)).int()
+    args.qb_begin=args.qb_end
+    args.qb_end+=mask_num
+    args.qb[args.qb_begin:args.qb_end]=temp_qb[mask].int()
+
+def quantize_with_pos(block_id:Tuple[int,int,int],delta:Tensor,mask:Tensor,eb:float,args:args_c)->None:
+    mask_positive=(delta>=0) & mask
+    mask_negative=(~mask_positive) & mask
+    mask_num=mask.sum().item()
+    temp_qb=torch.zeros_like(delta,dtype=torch.int)
+    temp_qb[mask_positive]=torch.ceil((delta[mask_positive]-eb)/(2*eb)).int()
+    temp_qb[mask_negative]=torch.floor((delta[mask_negative]+eb)/(2*eb)).int()
+    args.qb_begin=args.qb_end
+    args.qb_end+=mask_num
+    args.qb[args.qb_begin:args.qb_end]=temp_qb[mask]
+    args.qb_tensor[:,:,block_id[0]:block_id[0]+args.model_block_step[0],
+                       block_id[1]:block_id[1]+args.model_block_step[1],
+                       block_id[2]:block_id[2]+args.model_block_step[2]][mask]=temp_qb[mask]
+
+def quantize_parameter(parameter:Tensor,args:args_c)->Tensor:
+    mask_positive=(parameter>=0)
+    mask_negative=(~mask_positive)
+    parameter[mask_positive]=torch.ceil((parameter[mask_positive]-args.parameter_eb)/(2*args.parameter_eb))*2*args.parameter_eb
+    parameter[mask_negative]=torch.floor((parameter[mask_negative]+args.parameter_eb)/(2*args.parameter_eb))*2*args.parameter_eb
+    return parameter
+
+def convert_float_parameter_to_int(parameter:Tensor,args:args_c)->Tensor:
+    new_parameter=torch.zeros_like(parameter)
+    mask_positive=(parameter>=0)
+    mask_negative=(~mask_positive)
+    new_parameter[mask_positive]=torch.ceil((parameter[mask_positive]-args.parameter_eb)/(2*args.parameter_eb))
+    new_parameter[mask_negative]=torch.floor((parameter[mask_negative]+args.parameter_eb)/(2*args.parameter_eb))
+    return new_parameter.int()
