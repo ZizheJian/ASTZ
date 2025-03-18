@@ -1,17 +1,4 @@
-#QB=0的数量和压缩率不严格正相关，主要发生在压缩比极大或极小的时候
-#pretrain阶段不应该使用error bound修正
-
-#改为针对衍射数据的专用压缩器
-
-#测试xpcs数据拆分后使用SZ3压缩的效果
-
-#之后还要尝试：
-#   在高残差块上使用神经网络
-#   压缩系数
-#   动态块尺寸（一开始使用大块，如果残差过大则分割）
-#   LUT：在处理先前块时，记录从特征（如梯度直方图）到预测器的映射。在处理新块时，利用特征查找预测器。如果效果不理想，重新训练一个预测器并加入LUT
-
-import torch,copy
+import torch
 from args import args_c
 from read_dataset import read_dataset
 from plot_py import plot_c
@@ -19,38 +6,31 @@ from search_topology_tools import search_topology
 from topology_manager import topology_manager_c
 from separate_diffraction_average_residual import separate_diffraction_average_residual
 
-def pretrain(t1:float=None,t2:float=None,t3:float=None):
-    torch.set_num_threads(8)
-    args=args_c()
-    if t1 is not None:
-        args.FHDE_global_threshold=t1
-        args.FHDE_global_threshold_average=t1
-    if t2 is not None:
-        args.FHDE_global_threshold_residual=t2
-    plotter=plot_c(args)
-    topology_manager=topology_manager_c()
-    read_dataset(args)
-    if args.separate_average_residual:
-        separate_diffraction_average_residual(args,plotter)
-        data_backup=copy.deepcopy(args.data)
-        args.data=args.average_data
-        data_shape_backup=copy.deepcopy(args.data_shape)
-        args.data_shape=args.average_data_shape
-        search_topology(args,topology_manager,part_name="average")
-        args.data=data_backup
-        args.data_shape=data_shape_backup
-        if args.residual_baseline_method==[]:
-            pass
-        else:
-            data_backup=copy.deepcopy(args.data)
-            args.data=args.residual_data
-            search_topology(args,topology_manager,part_name="residual")
-            args.data=data_backup
-    else:
-        search_topology(args,topology_manager)
-
-if __name__=="__main__":
-    pretrain()
+torch.set_num_threads(8)
+args=args_c()
+plotter=plot_c(args)
+topology_manager=topology_manager_c()
+read_dataset(args)
+plotter.plot_data(args.data[0],args.data_name)
+if args.doughnut:
+    pass
+    # separate_diffraction_average_residual(args,plotter)
+    # data_backup=copy.deepcopy(args.data)
+    # args.data=args.data_average
+    # data_shape_backup=copy.deepcopy(args.data_shape)
+    # args.data_shape=args.data_shape_average
+    # search_topology(args,topology_manager,part_name="average")
+    # args.data=data_backup
+    # args.data_shape=data_shape_backup
+    # if args.residual_baseline_method==[]:
+    #     pass
+    # else:
+    #     data_backup=copy.deepcopy(args.data)
+    #     args.data=args.data_residual
+    #     search_topology(args,topology_manager,part_name="residual")
+    #     args.data=data_backup
+else:
+    search_topology(args,topology_manager)
 
 #ISABEL/P:
 #eb=1e-2,   th=7,   rfnum=3,    fhde_cr=2634.698975,    fhde_psnr=55.590092,    fhde_ssim=0.893851

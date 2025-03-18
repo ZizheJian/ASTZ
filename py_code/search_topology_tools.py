@@ -1,4 +1,4 @@
-import torch,copy,math
+import torch,copy,math,os
 import numpy as np
 from typing import Tuple,List
 from itertools import product
@@ -49,9 +49,9 @@ def generate_mask_core(mask_block:Tensor,args:args_c,padding:int)->Tensor:
         return simplified_mask_core
     return mask_core
 
-def generate_mat_A_B(cur_block_ext:Tensor,tgt_block_cropped:Tensor,mask_block_cropped:Tensor,mask_core:Tensor)->Tuple[Tensor,Tensor]:
-    mat_A=torch.zeros(mask_block_cropped[:,1::2].sum().item(),mask_core.sum().item()+4)
-    mat_B=torch.zeros(mask_block_cropped[:,1::2].sum().item())
+def generate_mat_A_B(cur_block_ext:Tensor,tgt_block_cropped:Tensor,mask_block_cropped:Tensor,mask_core:Tensor,tgt_num:int,param_num:int)->Tuple[Tensor,Tensor]:
+    mat_A=torch.zeros(tgt_num,param_num)
+    mat_B=torch.zeros(tgt_num)
     ch_id=0
     for i0,i1,i2 in product(range(-1,2),repeat=3):
         if mask_core[0,0,i0+1,i1+1,i2+1]:
@@ -81,17 +81,16 @@ def decode_conv(mat_X:Tensor,mask_core:Tensor)->Tensor:
 
 def search_topology(args:args_c,topology_manager:topology_manager_c,part_name:str=""):
     if part_name=="":
-        FHDE_threshold=args.FHDE_global_threshold
-        mask_pos_file_name=f"/home/x-zjian1/jzzz/mask_pos/{args.data_name}.txt"
+        FHDE_threshold=args.FHDE_threshold
+        mask_pos_file_name=os.path.join(args.project_root,f"mask_pos/{args.data_name}.txt")
     elif part_name=="average":
-        FHDE_threshold=args.FHDE_global_threshold_average
-        mask_pos_file_name=f"/home/x-zjian1/jzzz/mask_pos/{args.data_name}_average.txt"
+        FHDE_threshold=args.FHDE_threshold_average
+        mask_pos_file_name=os.path.join(args.project_root,f"mask_pos/{args.data_name}_average.txt")
     elif part_name=="residual":
-        FHDE_threshold=args.FHDE_global_threshold_residual
-        mask_pos_file_name=f"/home/x-zjian1/jzzz/mask_pos/{args.data_name}_residual.txt"
+        FHDE_threshold=args.FHDE_threshold_residual
+        mask_pos_file_name=os.path.join(args.project_root,f"mask_pos/{args.data_name}_residual.txt")
     else:
         raise Exception("part_name参数错误")
-    print(f"FHDE_threshold={FHDE_threshold}")
     tgt_data=copy.deepcopy(args.data).unsqueeze(0).unsqueeze(0)
     mask=torch.zeros((1,2)+args.data.shape,dtype=torch.bool)#mask[0,0]表示在反向过程中尚未处理的数据，mask[0,1]表示正在处理的数据。mask_block[0,2]表示未出界数据
     mask[:,0]=True
@@ -111,7 +110,7 @@ def search_topology(args:args_c,topology_manager:topology_manager_c,part_name:st
         abs_eb_backup=args.abs_eb
         args.abs_eb*=(0.95**i)
         ########搜索最佳topology########
-        best_sqrtmsqb:float=float("inf")
+        best_rmsqb:float=float("inf")#使用rmsqb是因为不同的step有不同的eb，所以不能直接用rmse
         best_topology_id:int=0
         best_mask:Tensor=torch.zeros_like(mask)
         for topology_id in possible_topology_id_list:
@@ -133,40 +132,39 @@ def search_topology(args:args_c,topology_manager:topology_manager_c,part_name:st
                 if mask_block_cropped[0,1].sum().item()==0:
                     continue
                 mask_core=generate_mask_core(mask_block,args,padding=1)
-                if "HDE" in args.baseline_method:
-                    mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block_cropped,mask_block_cropped,mask_core)
+                tgt_num=mask_block_cropped[:,1::2].sum().item()
+                param_num=mask_core.sum().item()+4
+                if args.method=="HDE":
+                    mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block_cropped,mask_block_cropped,mask_core,tgt_num,param_num)
                     lstsq_result=torch.linalg.lstsq(mat_A,mat_B,driver="gels")
                     mat_X=lstsq_result.solution
                     mat_X=quantize_parameter(mat_X,args)
                     err=mat_A@mat_X-mat_B
-                    loss=((err**2).sum()/mat_B.shape[0]).unsqueeze(0)
-                    sqrtmsqb_block=(loss**0.5)/(2*args.abs_eb)
-                    sqrtmsqb+=(sqrtmsqb_block**2)*mask_block_cropped[:,1::2].sum().item()
-                if "FHDE" in args.baseline_method:
-                    parameter_num=mask_core.sum().item()+4
-                    mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block_cropped,mask_block_cropped,mask_core)
+                    loss=((err**2).sum()/mat_B.shape[0])
+                    rmsqb_block=(loss**0.5)/(2*args.abs_eb)
+                    sqrtmsqb+=(rmsqb_block**2)*tgt_num
+                if args.method=="FHDE":
+                    mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block_cropped,mask_block_cropped,mask_core,tgt_num,param_num)
                     lstsq_result=torch.linalg.lstsq(mat_A,mat_B,driver="gels")
                     mat_X=lstsq_result.solution
-                    err=mat_A[:-parameter_num]@mat_X-mat_B[:-parameter_num]
+                    err=mat_A[:-param_num]@mat_X-mat_B[:-param_num]
                     valid_equations=(err.abs()<=args.abs_eb*FHDE_threshold)
                     if valid_equations.sum().item()>0:
-                        mat_A_filtered=torch.cat((mat_A[:-parameter_num][valid_equations],mat_A[-parameter_num:]),dim=0)
-                        mat_B_filtered=torch.cat((mat_B[:-parameter_num][valid_equations],mat_B[-parameter_num:]),dim=0)
+                        mat_A_filtered=torch.cat((mat_A[:-param_num][valid_equations],mat_A[-param_num:]),dim=0)
+                        mat_B_filtered=torch.cat((mat_B[:-param_num][valid_equations],mat_B[-param_num:]),dim=0)
                         lstsq_result=torch.linalg.lstsq(mat_A_filtered,mat_B_filtered,driver="gels")
                         mat_X=lstsq_result.solution
-                        loss=lstsq_result.residuals/mat_B_filtered.shape[0]
                     else:
                         mat_X=quantize_parameter(torch.cat((torch.ones(mask_core.sum().item())/mask_core.sum().item(),torch.zeros(4))),args)
-                        err=mat_A@mat_X-mat_B
-                        loss=((err**2).sum()/mat_B.shape[0]).unsqueeze(0)
-                    conv=decode_conv(mat_X,mask_core)
-                    conv=quantize_parameter(conv,args)
-                    sqrtmsqb_block=(loss**0.5)/(2*args.abs_eb)
-                    sqrtmsqb+=(sqrtmsqb_block**2)*mask_block_cropped[:,1::2].sum().item()
+                    mat_X=quantize_parameter(mat_X,args)
+                    err=mat_A@mat_X-mat_B
+                    loss=((err**2).sum()/mat_B.shape[0])
+                    rmsqb_block=(loss**0.5)/(2*args.abs_eb)
+                    sqrtmsqb+=(rmsqb_block**2)*mask_block_cropped[:,1::2].sum().item()
             sqrtmsqb=(sqrtmsqb/(mask[:,1::2].sum().item()))**0.5
             print(f"topology={topology_id}, sqrtmsqb={sqrtmsqb}")
-            if best_sqrtmsqb>sqrtmsqb:
-                best_sqrtmsqb=sqrtmsqb
+            if best_rmsqb>sqrtmsqb:
+                best_rmsqb=sqrtmsqb
                 best_topology_id=topology_id
                 best_mask[:]=mask[:]
             for i0,i1,i2 in product(range(0,2),repeat=3):
@@ -190,17 +188,17 @@ def search_topology(args:args_c,topology_manager:topology_manager_c,part_name:st
 
 def apply_topology1(args:args_c,topology_manager:topology_manager_c,part_name:str=""):
     if part_name=="":
-        FHDE_threshold=args.FHDE_global_threshold
-        mask_pos_file_name=f"/home/x-zjian1/jzzz/mask_pos/{args.data_name}.txt"
-        qb_file_name=f"/home/x-zjian1/jzzz/qb/{args.data_name}.bin"
-        freq_file_name=f"/home/x-zjian1/jzzz/freq/{args.data_name}.txt"
+        FHDE_threshold=args.FHDE_threshold
+        mask_pos_file_name=os.path.join(args.project_root,f"mask_pos/{args.data_name}.txt")
+        qb_file_name=os.path.join(args.project_root,"qb",f"args.data_name.qb")
+        freq_file_name=os.path.join(args.project_root,f"freq/{args.data_name}.txt")
     elif part_name=="average":
-        FHDE_threshold=args.FHDE_global_threshold_average
+        FHDE_threshold=args.FHDE_threshold_average
         mask_pos_file_name=f"/home/x-zjian1/jzzz/mask_pos/{args.data_name}_average.txt"
         qb_file_name=f"/home/x-zjian1/jzzz/qb/{args.data_name}_average.bin"
         freq_file_name=f"/home/x-zjian1/jzzz/freq/{args.data_name}_average.txt"
     elif part_name=="residual":
-        FHDE_threshold=args.FHDE_global_threshold_residual
+        FHDE_threshold=args.FHDE_threshold_residual
         mask_pos_file_name=f"/home/x-zjian1/jzzz/mask_pos/{args.data_name}_residual.txt"
         qb_file_name=f"/home/x-zjian1/jzzz/qb/{args.data_name}_residual.bin"
         freq_file_name=f"/home/x-zjian1/jzzz/freq/{args.data_name}_residual.txt"
@@ -242,7 +240,9 @@ def apply_topology1(args:args_c,topology_manager:topology_manager_c,part_name:st
             if mask_block_cropped[0,1].sum().item()==0:
                 continue
             mask_core=generate_mask_core(mask_block,args,padding=1)
-            if "HDE" in args.baseline_method:
+            tgt_num=mask_block_cropped[:,1::2].sum().item()
+            param_num=mask_core.sum().item()+4
+            if args.method=="HDE":
                 mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block_cropped,mask_block_cropped,mask_core)
                 lstsq_result=torch.linalg.lstsq(mat_A,mat_B,driver="gels")
                 mat_X=lstsq_result.solution
@@ -250,16 +250,15 @@ def apply_topology1(args:args_c,topology_manager:topology_manager_c,part_name:st
                 err=mat_A@mat_X-mat_B
                 conv=decode_conv(mat_X,mask_core)
                 h=F.conv3d(cur_block_ext,conv)
-            if "FHDE" in args.baseline_method:
-                parameter_num=mask_core.sum().item()+4
-                mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block_cropped,mask_block_cropped,mask_core)
+            if args.method=="FHDE":
+                mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block_cropped,mask_block_cropped,mask_core,tgt_num,param_num)
                 lstsq_result=torch.linalg.lstsq(mat_A,mat_B,driver="gels")
                 mat_X=lstsq_result.solution
-                err=mat_A[:-parameter_num]@mat_X-mat_B[:-parameter_num]
+                err=mat_A[:-param_num]@mat_X-mat_B[:-param_num]
                 valid_equations=(err.abs()<=args.abs_eb*FHDE_threshold)
                 if valid_equations.sum().item()>0:
-                    mat_A_filtered=torch.cat((mat_A[:-parameter_num][valid_equations],mat_A[-parameter_num:]),dim=0)
-                    mat_B_filtered=torch.cat((mat_B[:-parameter_num][valid_equations],mat_B[-parameter_num:]),dim=0)
+                    mat_A_filtered=torch.cat((mat_A[:-param_num][valid_equations],mat_A[-param_num:]),dim=0)
+                    mat_B_filtered=torch.cat((mat_B[:-param_num][valid_equations],mat_B[-param_num:]),dim=0)
                     lstsq_result=torch.linalg.lstsq(mat_A_filtered,mat_B_filtered,driver="gels")
                     mat_X=lstsq_result.solution
                 else:
