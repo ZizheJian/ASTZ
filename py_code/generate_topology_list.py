@@ -11,8 +11,9 @@ args=args_c()
 plotter=plot_c(args)
 topology_manager=topology_manager_c()
 read_dataset(args)
-plotter.plot_data(args.data[0],args.data_name)
-if args.doughnut:
+if not args.doughnut:
+    search_topology(args,topology_manager)
+else:
     pass
     # separate_diffraction_average_residual(args,plotter)
     # data_backup=copy.deepcopy(args.data)
@@ -29,8 +30,6 @@ if args.doughnut:
     #     args.data=args.data_residual
     #     search_topology(args,topology_manager,part_name="residual")
     #     args.data=data_backup
-else:
-    search_topology(args,topology_manager)
 
 #ISABEL/P:
 #eb=1e-2,   th=7,   rfnum=3,    fhde_cr=2634.698975,    fhde_psnr=55.590092,    fhde_ssim=0.893851

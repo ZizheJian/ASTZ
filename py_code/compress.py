@@ -39,7 +39,7 @@ else:
 max_err=(args.data-args.data_decompressed).abs().max().item()
 print(f"max_err={max_err}")
 mse=((args.data-args.data_decompressed)**2).mean().item()
-psnr=10*math.log10(max(args.data_max,-args.data_min)**2/mse)
+psnr=10*math.log10((args.data_max-args.data_min)**2/mse)
 print(f"psnr= {psnr:.6f}")
 with open(args.data_path+".fhde.bin","wb") as f:
     args.data_decompressed.numpy().tofile(f)

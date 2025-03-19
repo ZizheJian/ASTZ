@@ -1,4 +1,7 @@
-#整理一下python代码
+#尝试删掉正则化
+#继续整理代码
+#尝试删掉pos
+#尝试用固定参数替换第一次HDE
 
 import subprocess,os
 from typing import List
@@ -39,6 +42,11 @@ if not search_threshold:
         # print(command)
         # subprocess.run(command,shell=True,encoding="utf-8")
         command=f"python3 {os.path.join(code_directory_path,'compress.py')} "
-        command+=f"-f -i {data_path} -z {os.path.join(data_path,'.fhde')} -E REL {rel_eb} -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M {method} {FHDE_threshold} "
+        command+=f"-f -i {data_path} -z {os.path.join(data_path,'.fhde')} -o {os.path.join(data_path,'.fhde.bin')} "
+        command+=f"-E REL {rel_eb} -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M {method} {FHDE_threshold} "
         print(command)
         subprocess.run(command,shell=True,encoding="utf-8")
+    else:
+        raise NotImplementedError
+else:
+    raise NotImplementedError

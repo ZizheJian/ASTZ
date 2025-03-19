@@ -10,6 +10,7 @@ class args_c:
         self.data_name:str=""
         self.data_path:str=""
         self.data_compressed_path:str=""
+        self.data_decompressed_path:str=""
         self.data_shape:List[int]=[]
         self.rel_eb:float=0
         self.doughnut:bool=False
@@ -54,6 +55,7 @@ class args_c:
         parser.add_argument("-f",dest="data_type_float32",action="store_true")
         parser.add_argument("-i",dest="data_path",type=str)
         parser.add_argument("-z",dest="data_compressed_path",type=str)
+        parser.add_argument("-o",dest="data_decompressed_path",type=str)
         parser.add_argument("-E",dest="err",nargs="+")
         parser.add_argument("-3",dest="data_shape",nargs=3,type=int)
         parser.add_argument("-M",dest="method",nargs="+")
@@ -64,6 +66,7 @@ class args_c:
         self.data_name=os.path.basename(temp_args.data_path)
         self.data_path=temp_args.data_path
         self.data_compressed_path=temp_args.data_compressed_path
+        self.data_decompressed_path=temp_args.data_decompressed_path
         self.data_shape=[temp_args.data_shape[2],temp_args.data_shape[1],temp_args.data_shape[0]]
         self.rel_eb=float(temp_args.err[1])
         self.doughnut=temp_args.doughnut

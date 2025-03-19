@@ -82,7 +82,7 @@ def decode_conv(mat_X:Tensor,mask_core:Tensor)->Tensor:
 def search_topology(args:args_c,topology_manager:topology_manager_c,part_name:str=""):
     if part_name=="":
         FHDE_threshold=args.FHDE_threshold
-        mask_pos_file_name=os.path.join(args.project_root,f"mask_pos/{args.data_name}.txt")
+        mask_pos_file_name=os.path.join(args.project_root,"mask_pos",f"{args.data_name}.txt")
     elif part_name=="average":
         FHDE_threshold=args.FHDE_threshold_average
         mask_pos_file_name=os.path.join(args.project_root,f"mask_pos/{args.data_name}_average.txt")
@@ -124,7 +124,7 @@ def search_topology(args:args_c,topology_manager:topology_manager_c,part_name:st
                 mask[0,1,i0::2,i1::2,i2::2]=topology[i0,i1,i2]
             cur_data=torch.zeros_like(tgt_data)
             cur_data[mask[:,0:1]]=tgt_data[mask[:,0:1]]
-            sqrtmsqb=0
+            rmsqb=0
             for block_id,cur_block,tgt_block,mask_block in blockify(cur_data,tgt_data,mask,args,padding=1):
                 cur_block_ext=generate_cur_block_ext(cur_block,mask_block,args)
                 tgt_block_cropped=tgt_block[:,:,1:-1,1:-1,1:-1]
@@ -142,7 +142,7 @@ def search_topology(args:args_c,topology_manager:topology_manager_c,part_name:st
                     err=mat_A@mat_X-mat_B
                     loss=((err**2).sum()/mat_B.shape[0])
                     rmsqb_block=(loss**0.5)/(2*args.abs_eb)
-                    sqrtmsqb+=(rmsqb_block**2)*tgt_num
+                    rmsqb+=(rmsqb_block**2)*tgt_num
                 if args.method=="FHDE":
                     mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block_cropped,mask_block_cropped,mask_core,tgt_num,param_num)
                     lstsq_result=torch.linalg.lstsq(mat_A,mat_B,driver="gels")
@@ -160,11 +160,11 @@ def search_topology(args:args_c,topology_manager:topology_manager_c,part_name:st
                     err=mat_A@mat_X-mat_B
                     loss=((err**2).sum()/mat_B.shape[0])
                     rmsqb_block=(loss**0.5)/(2*args.abs_eb)
-                    sqrtmsqb+=(rmsqb_block**2)*mask_block_cropped[:,1::2].sum().item()
-            sqrtmsqb=(sqrtmsqb/(mask[:,1::2].sum().item()))**0.5
-            print(f"topology={topology_id}, sqrtmsqb={sqrtmsqb}")
-            if best_rmsqb>sqrtmsqb:
-                best_rmsqb=sqrtmsqb
+                    rmsqb+=(rmsqb_block**2)*mask_block_cropped[:,1::2].sum().item()
+            rmsqb=(rmsqb/(mask[:,1::2].sum().item()))**0.5
+            print(f"topology={topology_id}, sqrtmsqb={rmsqb}")
+            if best_rmsqb>rmsqb:
+                best_rmsqb=rmsqb
                 best_topology_id=topology_id
                 best_mask[:]=mask[:]
             for i0,i1,i2 in product(range(0,2),repeat=3):
