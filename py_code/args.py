@@ -52,6 +52,7 @@ class args_c:
         #自动生成的参数
         self.pos:Tensor=None
         self.padded_pos:Tensor=None
+        self.pos_ch:int=0
         self.apply_setting()
     def apply_setting(self):
         parser=argparse.ArgumentParser()
@@ -81,6 +82,8 @@ class args_c:
         self.padded_pos[0,1]=(torch.arange(self.model_block_step[1]+2)-1).view(1,-1,1).expand([x+2 for x in self.model_block_step])*2/(self.model_block_step[1]-1)-1
         self.padded_pos[0,2]=(torch.arange(self.model_block_step[2]+2)-1).view(1,1,-1).expand([x+2 for x in self.model_block_step])*2/(self.model_block_step[2]-1)-1
         self.padded_pos[0,3]=torch.ones([x+2 for x in self.model_block_step])
+        self.padded_pos=self.padded_pos[:,0:4]
+        self.pos_ch=self.padded_pos.shape[1]
         self.min_reference_num=1
         self.separate_average_residual:bool=False
         self.method_average=["FHDE"]

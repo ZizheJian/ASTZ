@@ -16,9 +16,6 @@ topology_manager=topology_manager_c()
 read_dataset(args)
 if not args.doughnut:
     apply_topology(args,topology_manager)
-    print(args.pivot)
-    print(args.pivot_num)
-    print(len(args.parameter))
     args.parameter=torch.cat(args.parameter)
     sorted_parameter=torch.sort(args.parameter).values/(2*args.parameter_eb)
     with open(os.path.join(args.project_root,"sorted_parameter.txt"),"w") as f:

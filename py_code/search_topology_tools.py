@@ -28,9 +28,9 @@ def any_pred_tgt_processed_check(topology:Tensor,mask:Tensor)->bool:
     return any_pred_tgt_processed
 
 def generate_cur_block_ext(cur_block:Tensor,mask_block:Tensor,args:args_c)->Tensor:
-    cur_block_ext=torch.zeros(1,1+4,cur_block.shape[2],cur_block.shape[3],cur_block.shape[4])
+    cur_block_ext=torch.zeros(1,1+args.pos_ch,cur_block.shape[2],cur_block.shape[3],cur_block.shape[4])
     cur_block_ext[:,0:1]=cur_block
-    cur_block_ext[:,1:1+4]=args.padded_pos[:,:,:cur_block.shape[2],:cur_block.shape[3],:cur_block.shape[4]]*mask_block[0,2:3]
+    cur_block_ext[:,1:1+args.pos_ch]=args.padded_pos[:,:,:cur_block.shape[2],:cur_block.shape[3],:cur_block.shape[4]]*mask_block[0,2:3]
     return cur_block_ext
 
 def generate_mask_core(mask_block:Tensor,args:args_c,padding:int)->Tensor:
@@ -57,24 +57,25 @@ def generate_mat_A_B(cur_block_ext:Tensor,tgt_block_cropped:Tensor,mask_block_cr
         if mask_core[0,0,i0+1,i1+1,i2+1]:
             mat_A[:,ch_id]=cur_block_ext[:,0:1,1+i0:cur_block_ext.shape[2]-1+i0,1+i1:cur_block_ext.shape[3]-1+i1,1+i2:cur_block_ext.shape[4]-1+i2][mask_block_cropped[:,1::2]]
             ch_id+=1
-    for j in range(1,5):
+    for j in range(1,1+args.pos_ch):
         mat_A[:,ch_id]=cur_block_ext[:,j:1+j,1:-1,1:-1,1:-1][mask_block_cropped[:,1::2]]
         ch_id+=1
     mat_B=tgt_block_cropped[mask_block_cropped[:,1::2]]
-    a=1/args.parameter_relative_eb
+    # a=1/args.parameter_relative_eb
+    a=1e-5
     mat_A=torch.cat([mat_A,torch.eye(mat_A.shape[1])*a],dim=0)
     mat_B=torch.cat([mat_B,torch.zeros(mat_A.shape[1])],dim=0)
     return mat_A,mat_B
 
-def decode_conv(mat_X:Tensor,mask_core:Tensor)->Tensor:
-    conv=torch.zeros(1,5,3,3,3)
+def decode_conv(mat_X:Tensor,mask_core:Tensor,args:args_c)->Tensor:
+    conv=torch.zeros(1,1+args.pos_ch,3,3,3)
     ch_id=0
     for i0,i1,i2 in product(range(-1,2),repeat=3):
         if mask_core[0,0,i0+1,i1+1,i2+1]==False:
             continue
         conv[0,0,i0+1,i1+1,i2+1]=mat_X[ch_id]
         ch_id+=1
-    for j in range(1,5):
+    for j in range(1,1+args.pos_ch):
         conv[0,j,1,1,1]=mat_X[ch_id]
         ch_id+=1
     return conv
@@ -133,7 +134,7 @@ def search_topology(args:args_c,topology_manager:topology_manager_c,part_name:st
                     continue
                 mask_core=generate_mask_core(mask_block,args,padding=1)
                 tgt_num=mask_block_cropped[:,1::2].sum().item()
-                param_num=mask_core.sum().item()+4
+                param_num=mask_core.sum().item()+args.pos_ch
                 if args.method=="HDE":
                     mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block_cropped,mask_block_cropped,mask_core,tgt_num,param_num,args)
                     lstsq_result=torch.linalg.lstsq(mat_A,mat_B,driver="gels")
@@ -154,11 +155,14 @@ def search_topology(args:args_c,topology_manager:topology_manager_c,part_name:st
                         mat_B_filtered=torch.cat((mat_B[:-param_num][valid_equations],mat_B[-param_num:]),dim=0)
                         lstsq_result=torch.linalg.lstsq(mat_A_filtered,mat_B_filtered,driver="gels")
                         mat_X=lstsq_result.solution
+                        mat_X=quantize_parameter(mat_X,args)
+                        err=mat_A_filtered@mat_X-mat_B_filtered
+                        loss=(err**2).sum()/(valid_equations.sum().item()+param_num)
                     else:
-                        mat_X=quantize_parameter(torch.cat((torch.ones(mask_core.sum().item())/mask_core.sum().item(),torch.zeros(4))),args)
-                    mat_X=quantize_parameter(mat_X,args)
-                    err=mat_A@mat_X-mat_B
-                    loss=(err**2).sum()/(tgt_num+param_num)
+                        mat_X=torch.cat((torch.ones(param_num-args.pos_ch)/(param_num-args.pos_ch),torch.zeros(args.pos_ch)))
+                        mat_X=quantize_parameter(mat_X,args)
+                        err=mat_A@mat_X-mat_B
+                        loss=(err**2).sum()/(tgt_num+param_num)
                     rmsqb_block=(loss**0.5)/(2*args.abs_eb)
                     rmsqb+=(rmsqb_block**2)*(tgt_num+param_num)
             rmsqb=(rmsqb/(mask[:,1::2].sum().item()))**0.5
@@ -241,13 +245,13 @@ def apply_topology(args:args_c,topology_manager:topology_manager_c,part_name:str
                 continue
             mask_core=generate_mask_core(mask_block,args,padding=1)
             tgt_num=mask_block_cropped[:,1::2].sum().item()
-            param_num=mask_core.sum().item()+4
+            param_num=mask_core.sum().item()+args.pos_ch
             if args.method=="HDE":
                 mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block_cropped,mask_block_cropped,mask_core,args)
                 lstsq_result=torch.linalg.lstsq(mat_A,mat_B,driver="gels")
                 mat_X=lstsq_result.solution
                 mat_X=quantize_parameter(mat_X,args)
-                conv=decode_conv(mat_X,mask_core)
+                conv=decode_conv(mat_X,mask_core,args)
                 h=F.conv3d(cur_block_ext,conv)
             if args.method=="FHDE":
                 mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block_cropped,mask_block_cropped,mask_core,tgt_num,param_num,args)
@@ -261,10 +265,10 @@ def apply_topology(args:args_c,topology_manager:topology_manager_c,part_name:str
                     lstsq_result=torch.linalg.lstsq(mat_A_filtered,mat_B_filtered,driver="gels")
                     mat_X=lstsq_result.solution
                 else:
-                    mat_X=quantize_parameter(torch.cat((torch.ones(param_num-4)/(param_num-4),torch.zeros(4))),args)
+                    mat_X=torch.cat((torch.ones(param_num-args.pos_ch)/(param_num-args.pos_ch),torch.zeros(args.pos_ch)))
                 mat_X=quantize_parameter(mat_X,args)
                 args.parameter.append(mat_X)
-                conv=decode_conv(mat_X,mask_core)
+                conv=decode_conv(mat_X,mask_core,args)
                 h=F.conv3d(cur_block_ext,conv)
             quantize(tgt_block_cropped-h,mask_block_cropped[:,1::2],args.abs_eb,tgt_num,args)
             cur_block_cropped[mask_block_cropped[:,1::2]]=h[mask_block_cropped[:,1::2]]+args.qb[args.qb_begin:args.qb_end]*2*args.abs_eb
