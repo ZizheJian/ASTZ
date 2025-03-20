@@ -14,7 +14,12 @@ args=args_c()
 plotter=plot_c(args)
 topology_manager=topology_manager_c()
 read_dataset(args)
-if args.doughnut:
+if not args.doughnut:
+    apply_topology1(args,topology_manager)
+    print(args.pivot)
+    print(args.pivot_num)
+    print(len(args.parameter))
+else:
     ########压缩average_data########
     separate_diffraction_average_residual(args,plotter)
     data_backup=copy.deepcopy(args.data)
@@ -28,14 +33,12 @@ if args.doughnut:
     get_actual_residual_data(args)
     data_backup=copy.deepcopy(args.data)
     args.data=args.data_residual
-    if args.residual_baseline_method==[]:
+    if args.method_residual==[]:
         args.data_residual_decompressed=apply_topology2(args,part_name="residual")
     else:
         args.data_residual_decompressed=apply_topology1(args,topology_manager,part_name="residual")
     args.data=data_backup
     args.data_decompressed=add_average_and_residual_data(args)
-else:
-    args.data_decompressed=apply_topology1(args,topology_manager)
 max_err=(args.data-args.data_decompressed).abs().max().item()
 print(f"max_err={max_err}")
 mse=((args.data-args.data_decompressed)**2).mean().item()
@@ -47,7 +50,11 @@ calculateSSIM_command=f"calculateSSIM -f {args.data_path} {args.data_path}.fhde.
 calculateSSIM_ouput=subprocess.check_output(calculateSSIM_command,shell=True,encoding="utf-8")
 ssim=float(calculateSSIM_ouput.strip().split("\n")[-1].split()[-1])
 print(f"ssim= {ssim:.6f}")
-if args.separate_average_residual:
+if not args.doughnut:
+    compressQuantBins_command=f"compressQuantBins {os.path.join(args.project_root,'qb',f'{args.data_name}.qb')}"
+    compressQuantBins_output=subprocess.check_output(compressQuantBins_command,shell=True,encoding="utf-8")
+    cr=float(compressQuantBins_output.strip().split("\n")[-3].split()[-1])
+else:
     # bitstream_length_average=os.path.getsize("data_generated/average.bin.sz3")
     # bitstream_length_residual=os.path.getsize("data_generated/residual.bin.sz3")
     # cr=(args.data_shape[0]*args.data_shape[1]*args.data_shape[2]*4)/(bitstream_length_average+bitstream_length_residual)
@@ -60,8 +67,5 @@ if args.separate_average_residual:
     print(f"bitstream_length_average= {bitstream_length_average}")
     print(f"bitstream_length_residual= {bitstream_length_residual}")
     cr=(args.data_shape[0]*args.data_shape[1]*args.data_shape[2]*4)/(bitstream_length_average+bitstream_length_residual)
-else:
-    compressQuantBins_command=f"compressQuantBins {os.path.join(args.project_root,'qb',f'{args.data_name}.qb')}"
-    compressQuantBins_output=subprocess.check_output(compressQuantBins_command,shell=True,encoding="utf-8")
-    cr=float(compressQuantBins_output.strip().split("\n")[-3].split()[-1])
+    
 print(f"cr= {cr:.6f}")

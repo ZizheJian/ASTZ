@@ -1,6 +1,6 @@
 import torch,copy,math,os
 import numpy as np
-from typing import Tuple,List
+from typing import Tuple
 from itertools import product
 from torch import Tensor
 from torch.nn import functional as F
@@ -139,8 +139,8 @@ def search_topology(args:args_c,topology_manager:topology_manager_c,part_name:st
                     lstsq_result=torch.linalg.lstsq(mat_A,mat_B,driver="gels")
                     mat_X=lstsq_result.solution
                     mat_X=quantize_parameter(mat_X,args)
-                    err=mat_A@mat_X-mat_B
-                    loss=((err**2).sum()/mat_B.shape[0])
+                    err=mat_A[:-param_num]@mat_X-mat_B[:-param_num]
+                    loss=(err**2).sum()/tgt_num
                     rmsqb_block=(loss**0.5)/(2*args.abs_eb)
                     rmsqb+=(rmsqb_block**2)*tgt_num
                 if args.method=="FHDE":
@@ -157,12 +157,12 @@ def search_topology(args:args_c,topology_manager:topology_manager_c,part_name:st
                     else:
                         mat_X=quantize_parameter(torch.cat((torch.ones(mask_core.sum().item())/mask_core.sum().item(),torch.zeros(4))),args)
                     mat_X=quantize_parameter(mat_X,args)
-                    err=mat_A@mat_X-mat_B
-                    loss=((err**2).sum()/mat_B.shape[0])
+                    err=mat_A[:-param_num]@mat_X-mat_B[:-param_num]
+                    loss=(err**2).sum()/tgt_num
                     rmsqb_block=(loss**0.5)/(2*args.abs_eb)
-                    rmsqb+=(rmsqb_block**2)*mask_block_cropped[:,1::2].sum().item()
+                    rmsqb+=(rmsqb_block**2)*tgt_num
             rmsqb=(rmsqb/(mask[:,1::2].sum().item()))**0.5
-            print(f"topology={topology_id}, sqrtmsqb={rmsqb}")
+            print(f"topology={topology_id}, rmsqb={rmsqb}")
             if best_rmsqb>rmsqb:
                 best_rmsqb=rmsqb
                 best_topology_id=topology_id
@@ -179,9 +179,7 @@ def search_topology(args:args_c,topology_manager:topology_manager_c,part_name:st
         tgt_data[mask[:,1:2]]=0
         mask[0,1]=False
         tgt_data,mask=shrink_data(tgt_data,mask,args)
-        print(tgt_data[0,0,0:3,0:3,0:3])
-        print(mask[0,0,0:3,0:3,0:3])
-        print(tgt_data.shape,mask.shape,args.data_shape)
+        print(args.data_shape)
         args.abs_eb=abs_eb_backup
     total_data_num+=1
     print(f"total_data_num={total_data_num}")
@@ -189,9 +187,9 @@ def search_topology(args:args_c,topology_manager:topology_manager_c,part_name:st
 def apply_topology1(args:args_c,topology_manager:topology_manager_c,part_name:str=""):
     if part_name=="":
         FHDE_threshold=args.FHDE_threshold
-        mask_pos_file_name=os.path.join(args.project_root,f"mask_pos/{args.data_name}.txt")
-        qb_file_name=os.path.join(args.project_root,"qb",f"args.data_name.qb")
-        freq_file_name=os.path.join(args.project_root,f"freq/{args.data_name}.txt")
+        mask_pos_file_name=os.path.join(args.project_root,"mask_pos",f"{args.data_name}.txt")
+        qb_file_name=os.path.join(args.project_root,"qb",f"{args.data_name}.qb")
+        freq_file_name=os.path.join(args.project_root,"freq",f"{args.data_name}.txt")
     elif part_name=="average":
         FHDE_threshold=args.FHDE_threshold_average
         mask_pos_file_name=f"/home/x-zjian1/jzzz/mask_pos/{args.data_name}_average.txt"
@@ -204,7 +202,6 @@ def apply_topology1(args:args_c,topology_manager:topology_manager_c,part_name:st
         freq_file_name=f"/home/x-zjian1/jzzz/freq/{args.data_name}_residual.txt"
     else:
         raise Exception("part_name参数错误")
-    print(f"FHDE_threshold={FHDE_threshold}")
     args.cur_shape_list=[]
     args.topology_id_list=[]
     with open(mask_pos_file_name,"r") as f:
@@ -219,14 +216,17 @@ def apply_topology1(args:args_c,topology_manager:topology_manager_c,part_name:st
     args.qb=torch.zeros(args.data_shape[0]*args.data_shape[1]*args.data_shape[2],dtype=torch.int32)
     args.qb_begin=args.qb_end=0
     pred_gap=[2**math.ceil(np.log2(args.data_shape[i])) for i in range(3)]
-    pivot_num=args.data_shape[0]*args.data_shape[1]*args.data_shape[2]/pred_gap[0]/pred_gap[1]/pred_gap[2]
+    args.pivot=torch.zeros(args.data_shape[0]*args.data_shape[1]*args.data_shape[2],dtype=torch.float32)
+    args.pivot_num=0
     for i in range(len(args.topology_id_list)-1,-1,-1):
         cur_shape=args.cur_shape_list[i]
         topology_id=args.topology_id_list[i]
         topology=topology_manager.topology_dict[topology_id]
         cur_data,tgt_data,mask,pred_gap=expand_data(cur_data,tgt_data,mask,pred_gap,args,cur_shape,topology)
-        if mask.sum().item()<pivot_num:
+        if mask.sum().item()<args.data_shape[0]*args.data_shape[1]*args.data_shape[2]/args.pivot_ratio:
             cur_data[mask[:,1:2]]=tgt_data[mask[:,1:2]]
+            args.pivot[args.pivot_num:args.pivot_num+mask[:,1:2].sum().item()]=tgt_data[mask[:,1:2]]
+            args.pivot_num+=mask[:,1:2].sum().item()
             mask[:,0:1]+=mask[:,1:2]
             mask[:,1:2]=False
             continue
@@ -247,7 +247,6 @@ def apply_topology1(args:args_c,topology_manager:topology_manager_c,part_name:st
                 lstsq_result=torch.linalg.lstsq(mat_A,mat_B,driver="gels")
                 mat_X=lstsq_result.solution
                 mat_X=quantize_parameter(mat_X,args)
-                err=mat_A@mat_X-mat_B
                 conv=decode_conv(mat_X,mask_core)
                 h=F.conv3d(cur_block_ext,conv)
             if args.method=="FHDE":
@@ -262,12 +261,17 @@ def apply_topology1(args:args_c,topology_manager:topology_manager_c,part_name:st
                     lstsq_result=torch.linalg.lstsq(mat_A_filtered,mat_B_filtered,driver="gels")
                     mat_X=lstsq_result.solution
                 else:
-                    mat_X=quantize_parameter(torch.cat((torch.ones(mask_core.sum().item())/mask_core.sum().item(),torch.zeros(4))),args)
+                    mat_X=quantize_parameter(torch.cat((torch.ones(param_num-4)/(param_num-4),torch.zeros(4))),args)
+                mat_X=quantize_parameter(mat_X,args)
+                args.parameter.append(mat_X)
                 conv=decode_conv(mat_X,mask_core)
-                conv=quantize_parameter(conv,args)
                 h=F.conv3d(cur_block_ext,conv)
-            quantize(tgt_block_cropped-h,mask_block_cropped[:,1::2],args.abs_eb,args)
+            quantize(tgt_block_cropped-h,mask_block_cropped[:,1::2],args.abs_eb,tgt_num,args)
             cur_block_cropped[mask_block_cropped[:,1::2]]=h[mask_block_cropped[:,1::2]]+args.qb[args.qb_begin:args.qb_end]*2*args.abs_eb
+            irr_mask=(args.qb[args.qb_begin:args.qb_end].abs()>32767)
+            args.pivot[args.pivot_num:args.pivot_num+irr_mask.sum().item()]=tgt_block_cropped[mask_block_cropped[:,1::2]][irr_mask]
+            args.pivot_num+=irr_mask.sum().item()
+            args.qb[args.qb_begin:args.qb_end][irr_mask]=-32768
             cur_data[:,:,block_id[0]:block_id[0]+args.model_block_step[0],
                         block_id[1]:block_id[1]+args.model_block_step[1],
                         block_id[2]:block_id[2]+args.model_block_step[2]]=cur_block_cropped
@@ -278,13 +282,14 @@ def apply_topology1(args:args_c,topology_manager:topology_manager_c,part_name:st
     print(f"qb_min={args.qb.min().item()}, qb_max={args.qb.max().item()}")
     with open(qb_file_name,"wb") as f:
         (args.qb+32768).numpy().tofile(f)
+    args.data_decompressed=cur_data[0,0]
+    print(args.qb.shape)
     freq=torch.bincount(args.qb+32768,minlength=65536)
     with open(freq_file_name,"w") as f:
         for i in range(65536):
             f.write(str(i)+" "+str(freq[i].item())+"\n")
     max_err=(tgt_data-cur_data).abs().max().item()
     print(f"max_err={max_err}")
-    return cur_data[0,0]
 
 def apply_topology2(args:args_c,part_name:str):
     args.qb=torch.zeros(args.data_shape[0]*args.data_shape[1]*args.data_shape[2],dtype=torch.int32)

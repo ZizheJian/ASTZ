@@ -17,18 +17,21 @@ class args_c:
         self.method:str=""
         self.FHDE_threshold:float=0
         self.model_block_step=[]
-        self.max_epoch=0
         self.min_reference_num:int=0
-        self.average_baseline_method:List[str]=[]
-        self.residual_baseline_method:List[str]=[]
+        self.method_average:List[str]=[]
+        self.method_residual:List[str]=[]
         self.parameter_relative_eb:float=0
         self.FHDE_threshold_average:float=0
         self.FHDE_threshold_residual:float=0
+        self.pivot_ratio:int=0
         #仅初始化的参数
         self.data_min:float=0
         self.data_max:float=0
         self.abs_eb:float=0
-        self.data=tensor([],dtype=torch.float32)
+        self.data:Tensor=tensor([],dtype=torch.float32)
+        self.pivot:Tensor=tensor([],dtype=torch.float32)
+        self.pivot_num:int=0
+        self.parameter:List[Tensor]=[]
         self.data_decompressed=tensor([],dtype=torch.float32)
         self.data_average=tensor([],dtype=torch.float32)
         self.data_average_decompressed=tensor([],dtype=torch.float32)
@@ -81,8 +84,9 @@ class args_c:
         self.padded_pos[0,3]=torch.ones([x+2 for x in self.model_block_step])
         self.min_reference_num=1
         self.separate_average_residual:bool=False
-        self.average_baseline_method=["FHDE"]
-        self.residual_baseline_method=["FHDE"]
+        self.method_average=["FHDE"]
+        self.method_residual=["FHDE"]
         self.parameter_relative_eb=1e-2
         self.FHDE_threshold_average=5
         self.FHDE_threshold_residual=5
+        self.pivot_ratio=2**15
