@@ -6,7 +6,7 @@ from args import args_c
 from plot_py import plot_c
 from read_dataset import read_dataset
 from topology_manager import topology_manager_c
-from search_topology_tools import apply_topology1,apply_topology2
+from search_topology_tools import apply_topology,apply_topology2
 from separate_diffraction_average_residual import separate_diffraction_average_residual,get_actual_residual_data,add_average_and_residual_data
 
 torch.set_num_threads(8)
@@ -15,10 +15,15 @@ plotter=plot_c(args)
 topology_manager=topology_manager_c()
 read_dataset(args)
 if not args.doughnut:
-    apply_topology1(args,topology_manager)
+    apply_topology(args,topology_manager)
     print(args.pivot)
     print(args.pivot_num)
     print(len(args.parameter))
+    args.parameter=torch.cat(args.parameter)
+    sorted_parameter=torch.sort(args.parameter).values/(2*args.parameter_eb)
+    with open(os.path.join(args.project_root,"sorted_parameter.txt"),"w") as f:
+        for i in range(sorted_parameter.size(0)):
+            f.write(f"{sorted_parameter[i].item()}\n")
 else:
     ########压缩average_data########
     separate_diffraction_average_residual(args,plotter)
@@ -26,7 +31,7 @@ else:
     args.data=args.data_average
     data_shape_backup=copy.deepcopy(args.data_shape)
     args.data_shape=args.data_shape_average
-    args.data_average_decompressed=apply_topology1(args,topology_manager,part_name="average")
+    args.data_average_decompressed=apply_topology(args,topology_manager,part_name="average")
     args.data=data_backup
     args.data_shape=data_shape_backup
     ########压缩residual_data########
@@ -36,7 +41,7 @@ else:
     if args.method_residual==[]:
         args.data_residual_decompressed=apply_topology2(args,part_name="residual")
     else:
-        args.data_residual_decompressed=apply_topology1(args,topology_manager,part_name="residual")
+        args.data_residual_decompressed=apply_topology(args,topology_manager,part_name="residual")
     args.data=data_backup
     args.data_decompressed=add_average_and_residual_data(args)
 max_err=(args.data-args.data_decompressed).abs().max().item()

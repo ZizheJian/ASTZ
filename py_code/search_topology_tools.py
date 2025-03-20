@@ -49,7 +49,7 @@ def generate_mask_core(mask_block:Tensor,args:args_c,padding:int)->Tensor:
         return simplified_mask_core
     return mask_core
 
-def generate_mat_A_B(cur_block_ext:Tensor,tgt_block_cropped:Tensor,mask_block_cropped:Tensor,mask_core:Tensor,tgt_num:int,param_num:int)->Tuple[Tensor,Tensor]:
+def generate_mat_A_B(cur_block_ext:Tensor,tgt_block_cropped:Tensor,mask_block_cropped:Tensor,mask_core:Tensor,tgt_num:int,param_num:int,args:args_c)->Tuple[Tensor,Tensor]:
     mat_A=torch.zeros(tgt_num,param_num)
     mat_B=torch.zeros(tgt_num)
     ch_id=0
@@ -61,8 +61,8 @@ def generate_mat_A_B(cur_block_ext:Tensor,tgt_block_cropped:Tensor,mask_block_cr
         mat_A[:,ch_id]=cur_block_ext[:,j:1+j,1:-1,1:-1,1:-1][mask_block_cropped[:,1::2]]
         ch_id+=1
     mat_B=tgt_block_cropped[mask_block_cropped[:,1::2]]
-    a=1e-10
-    mat_A=torch.cat([mat_A,torch.eye(mat_A.shape[1])*(a**0.5)],dim=0)
+    a=1/args.parameter_relative_eb
+    mat_A=torch.cat([mat_A,torch.eye(mat_A.shape[1])*a],dim=0)
     mat_B=torch.cat([mat_B,torch.zeros(mat_A.shape[1])],dim=0)
     return mat_A,mat_B
 
@@ -135,16 +135,16 @@ def search_topology(args:args_c,topology_manager:topology_manager_c,part_name:st
                 tgt_num=mask_block_cropped[:,1::2].sum().item()
                 param_num=mask_core.sum().item()+4
                 if args.method=="HDE":
-                    mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block_cropped,mask_block_cropped,mask_core,tgt_num,param_num)
+                    mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block_cropped,mask_block_cropped,mask_core,tgt_num,param_num,args)
                     lstsq_result=torch.linalg.lstsq(mat_A,mat_B,driver="gels")
                     mat_X=lstsq_result.solution
                     mat_X=quantize_parameter(mat_X,args)
-                    err=mat_A[:-param_num]@mat_X-mat_B[:-param_num]
-                    loss=(err**2).sum()/tgt_num
+                    err=mat_A@mat_X-mat_B
+                    loss=(err**2).sum()/(tgt_num+param_num)
                     rmsqb_block=(loss**0.5)/(2*args.abs_eb)
-                    rmsqb+=(rmsqb_block**2)*tgt_num
+                    rmsqb+=(rmsqb_block**2)*(tgt_num+param_num)
                 if args.method=="FHDE":
-                    mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block_cropped,mask_block_cropped,mask_core,tgt_num,param_num)
+                    mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block_cropped,mask_block_cropped,mask_core,tgt_num,param_num,args)
                     lstsq_result=torch.linalg.lstsq(mat_A,mat_B,driver="gels")
                     mat_X=lstsq_result.solution
                     err=mat_A[:-param_num]@mat_X-mat_B[:-param_num]
@@ -157,10 +157,10 @@ def search_topology(args:args_c,topology_manager:topology_manager_c,part_name:st
                     else:
                         mat_X=quantize_parameter(torch.cat((torch.ones(mask_core.sum().item())/mask_core.sum().item(),torch.zeros(4))),args)
                     mat_X=quantize_parameter(mat_X,args)
-                    err=mat_A[:-param_num]@mat_X-mat_B[:-param_num]
-                    loss=(err**2).sum()/tgt_num
+                    err=mat_A@mat_X-mat_B
+                    loss=(err**2).sum()/(tgt_num+param_num)
                     rmsqb_block=(loss**0.5)/(2*args.abs_eb)
-                    rmsqb+=(rmsqb_block**2)*tgt_num
+                    rmsqb+=(rmsqb_block**2)*(tgt_num+param_num)
             rmsqb=(rmsqb/(mask[:,1::2].sum().item()))**0.5
             print(f"topology={topology_id}, rmsqb={rmsqb}")
             if best_rmsqb>rmsqb:
@@ -184,7 +184,7 @@ def search_topology(args:args_c,topology_manager:topology_manager_c,part_name:st
     total_data_num+=1
     print(f"total_data_num={total_data_num}")
 
-def apply_topology1(args:args_c,topology_manager:topology_manager_c,part_name:str=""):
+def apply_topology(args:args_c,topology_manager:topology_manager_c,part_name:str=""):
     if part_name=="":
         FHDE_threshold=args.FHDE_threshold
         mask_pos_file_name=os.path.join(args.project_root,"mask_pos",f"{args.data_name}.txt")
@@ -243,14 +243,14 @@ def apply_topology1(args:args_c,topology_manager:topology_manager_c,part_name:st
             tgt_num=mask_block_cropped[:,1::2].sum().item()
             param_num=mask_core.sum().item()+4
             if args.method=="HDE":
-                mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block_cropped,mask_block_cropped,mask_core)
+                mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block_cropped,mask_block_cropped,mask_core,args)
                 lstsq_result=torch.linalg.lstsq(mat_A,mat_B,driver="gels")
                 mat_X=lstsq_result.solution
                 mat_X=quantize_parameter(mat_X,args)
                 conv=decode_conv(mat_X,mask_core)
                 h=F.conv3d(cur_block_ext,conv)
             if args.method=="FHDE":
-                mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block_cropped,mask_block_cropped,mask_core,tgt_num,param_num)
+                mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block_cropped,mask_block_cropped,mask_core,tgt_num,param_num,args)
                 lstsq_result=torch.linalg.lstsq(mat_A,mat_B,driver="gels")
                 mat_X=lstsq_result.solution
                 err=mat_A[:-param_num]@mat_X-mat_B[:-param_num]

@@ -76,7 +76,6 @@ class args_c:
         self.method=temp_args.method[0]
         self.FHDE_threshold=float(temp_args.method[1])
         self.model_block_step=[32,32,32]
-        self.max_epoch=1000
         self.padded_pos=torch.zeros([4]+[i+2 for i in self.model_block_step]).unsqueeze(0).float()
         self.padded_pos[0,0]=(torch.arange(self.model_block_step[0]+2)-1).view(-1,1,1).expand([x+2 for x in self.model_block_step])*2/(self.model_block_step[0]-1)-1
         self.padded_pos[0,1]=(torch.arange(self.model_block_step[1]+2)-1).view(1,-1,1).expand([x+2 for x in self.model_block_step])*2/(self.model_block_step[1]-1)-1

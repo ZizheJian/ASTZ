@@ -36,10 +36,10 @@ code_directory_path=os.path.dirname(starter_file_path)
 
 if not search_threshold:
     if not doughnut:
-        # command=f"python3 {os.path.join(code_directory_path,'generate_topology_list.py')} "
-        # command+=f"-f -i {data_path} -E REL {rel_eb} -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M {method} {FHDE_threshold} "
-        # print(command)
-        # subprocess.run(command,shell=True,encoding="utf-8")
+        command=f"python3 {os.path.join(code_directory_path,'generate_topology_list.py')} "
+        command+=f"-f -i {data_path} -E REL {rel_eb} -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M {method} {FHDE_threshold} "
+        print(command)
+        subprocess.run(command,shell=True,encoding="utf-8")
         command=f"python3 {os.path.join(code_directory_path,'compress.py')} "
         command+=f"-f -i {data_path} -z {os.path.join(data_path,'.fhde')} -o {os.path.join(data_path,'.fhde.bin')} "
         command+=f"-E REL {rel_eb} -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M {method} {FHDE_threshold} "
