@@ -1,6 +1,4 @@
 import torch,math,copy,subprocess,os
-import numpy as np
-from torch import nn
 from torch.nn import functional as F
 from args import args_c
 from plot_py import plot_c
