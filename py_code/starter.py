@@ -4,8 +4,8 @@ import subprocess,os,random,copy
 from itertools import product
 from typing import List
 
-data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_datasets/APSU_TestData_004/APSU_TestData_004_cut.bin"
-data_shape:List[int]=[614,312,363]
+# data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_datasets/APSU_TestData_004/APSU_TestData_004_cut.bin"
+# data_shape:List[int]=[614,312,363]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/9-ID_CSSI_data/benchmarkdata/Avg_L0470_Double_exp_elong_siemens_1p00sampit_0p05inplane_patch1_of1_part0_001_cut.bin"
 # data_shape:List[int]=[150,453,390]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/EXAFEL/SDRBENCH-EXAFEL-data-13x1480x1552.f32"
@@ -14,13 +14,15 @@ data_shape:List[int]=[614,312,363]
 # data_shape:List[int]=[998,128,128]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/NYX/baryon_density_log10_cut.f32"
 # data_shape:List[str]=[256,256,256]
+data_path:str="/anvil/projects/x-cis240192/x-zjian1/NYX/baryon_density_cut.f32"
+data_shape:List[str]=[256,256,256]
 
 rel_eb:float=1e-4
 doughnut:bool=False
 method:str="FHDE"
 method_average:str="FHDE"
 method_residual:str="FHDE"
-FHDE_threshold=9
+FHDE_threshold=2
 FHDE_threshold_average=FHDE_threshold
 FHDE_threshold_residual=FHDE_threshold
 search_threshold:bool=False
@@ -145,13 +147,18 @@ else:
 #                   hpez_cr=12.077442,      hpez_psnr=89.213993,    hpez_ssim=0.999941
 #                   sz3_cr=17.341478,       sz3_psnr=88.012202,     sz3_ssim=0.999680
 
-#NYX/baryon
-#eb=1e-2,   th=3,   fhde_cr=88.729607,      fhde_psnr=47.976594,    fhde_ssim=0.955374
+#baryon_density_log10_cut.f32
+#eb=1e-2,   th=2,   fhde_cr=112.175850,     fhde_psnr=48.594986,    fhde_ssim=0.960784
 #                   hpez_cr=127.539017,     hpez_psnr=51.311496,    hpez_ssim=0.983513
 #                   sz3_cr=92.054794,       sz3_psnr=47.666508,     sz3_ssim=0.953954
-#eb=1e-3,   th=9,   fhde_cr=13.387239,      fhde_psnr=65.295603,    fhde_ssim=0.999154
-#                   hpez_cr=19.305304,      hpez_psnr=65.177432,    hpez_ssim=0.999122
-#                   sz3_cr=13.180675,       sz3_psnr=64.931589,     sz3_ssim=0.999064
-#eb=1e-4,   th=31,  fhde_cr=5.576238,       fhde_psnr=85.099650,    fhde_ssim=0.999991
-#                   hpez_cr=6.825794,       hpez_psnr=84.772510,    hpez_ssim=0.999990
-#                   sz3_cr=5.661443,        sz3_psnr=84.822851,     sz3_ssim=0.999990
+
+#baryon_density_cut.f32
+#eb=1e-2,   th=6,   fhde_cr=59972.175781,   fhde_psnr=84.643368,    fhde_ssim=0.067792
+#                   hpez_cr=38994.109375,   hpez_psnr=83.019702,    hpez_ssim=0.064159
+#                   sz3_cr=47969.167969,    sz3_psnr=81.645181,     sz3_ssim=0.001000
+#eb=1e-3,   th=3,   fhde_cr=10615.131836,   fhde_psnr=93.000053,    fhde_ssim=0.079688
+#                   hpez_cr=7777.130859,    hpez_psnr=91.407724,    hpez_ssim=0.066296
+#                   sz3_cr=9101.975586,     sz3_psnr=90.195876,     sz3_ssim=0.007802
+#eb=1e-4,   th=2,   fhde_cr=1714.935669,    fhde_psnr=101.508924,    fhde_ssim=0.147669
+#                   hpez_cr=1313.593506,    hpez_psnr=101.910496,    hpez_ssim=0.190152
+#                   sz3_cr=1486.024414,     sz3_psnr=98.488485,     sz3_ssim=0.079761
