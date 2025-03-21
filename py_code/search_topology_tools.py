@@ -140,7 +140,7 @@ def search_topology(args:args_c,topology_manager:topology_manager_c,part_name:st
                     lstsq_result=torch.linalg.lstsq(mat_A,mat_B,driver="gels")
                     mat_X=lstsq_result.solution
                     mat_X=quantize_parameter(mat_X,args)
-                    err=mat_A@mat_X-mat_B
+                    err=mat_A@mat_X*2*args.parameter_eb-mat_B
                     loss=(err**2).sum()/(tgt_num+param_num)
                     rmsqb_block=(loss**0.5)/(2*args.abs_eb)
                     rmsqb+=(rmsqb_block**2)*(tgt_num+param_num)
@@ -155,12 +155,14 @@ def search_topology(args:args_c,topology_manager:topology_manager_c,part_name:st
                         mat_B_filtered=torch.cat((mat_B[:-param_num][valid_equations],mat_B[-param_num:]),dim=0)
                         lstsq_result=torch.linalg.lstsq(mat_A_filtered,mat_B_filtered,driver="gels")
                         mat_X=lstsq_result.solution
-                        mat_X=quantize_parameter(mat_X,args)
+                        mat_X_quantized=quantize_parameter(mat_X,args)
+                        mat_X=mat_X_quantized*2*args.parameter_eb
                         err=mat_A_filtered@mat_X-mat_B_filtered
                         loss=(err**2).sum()/(valid_equations.sum().item()+param_num)
                     else:
                         mat_X=torch.cat((torch.ones(param_num-args.pos_ch)/(param_num-args.pos_ch),torch.zeros(args.pos_ch)))
-                        mat_X=quantize_parameter(mat_X,args)
+                        mat_X_quantized=quantize_parameter(mat_X,args)
+                        mat_X=mat_X_quantized*2*args.parameter_eb
                         err=mat_A@mat_X-mat_B
                         loss=(err**2).sum()/(tgt_num+param_num)
                     rmsqb_block=(loss**0.5)/(2*args.abs_eb)
@@ -250,8 +252,8 @@ def apply_topology(args:args_c,topology_manager:topology_manager_c,part_name:str
                 mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block_cropped,mask_block_cropped,mask_core,args)
                 lstsq_result=torch.linalg.lstsq(mat_A,mat_B,driver="gels")
                 mat_X=lstsq_result.solution
-                mat_X=quantize_parameter(mat_X,args)
-                conv=decode_conv(mat_X,mask_core,args)
+                mat_X_quantized=quantize_parameter(mat_X,args)
+                conv=decode_conv(mat_X_quantized,mask_core,args)*2*args.parameter_eb
                 h=F.conv3d(cur_block_ext,conv)
             if args.method=="FHDE":
                 mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block_cropped,mask_block_cropped,mask_core,tgt_num,param_num,args)
@@ -266,9 +268,9 @@ def apply_topology(args:args_c,topology_manager:topology_manager_c,part_name:str
                     mat_X=lstsq_result.solution
                 else:
                     mat_X=torch.cat((torch.ones(param_num-args.pos_ch)/(param_num-args.pos_ch),torch.zeros(args.pos_ch)))
-                mat_X=quantize_parameter(mat_X,args)
-                args.parameter.append(mat_X)
-                conv=decode_conv(mat_X,mask_core,args)
+                mat_X_quantized=quantize_parameter(mat_X,args)
+                args.parameter.append(mat_X_quantized)
+                conv=decode_conv(mat_X_quantized,mask_core,args)*2*args.parameter_eb
                 h=F.conv3d(cur_block_ext,conv)
             quantize(tgt_block_cropped-h,mask_block_cropped[:,1::2],args.abs_eb,tgt_num,args)
             cur_block_cropped[mask_block_cropped[:,1::2]]=h[mask_block_cropped[:,1::2]]+args.qb[args.qb_begin:args.qb_end]*2*args.abs_eb

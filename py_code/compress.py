@@ -15,7 +15,7 @@ read_dataset(args)
 if not args.doughnut:
     apply_topology(args,topology_manager)
     args.parameter=torch.cat(args.parameter)
-    sorted_parameter=torch.sort(args.parameter).values/(2*args.parameter_eb)
+    sorted_parameter=torch.sort(args.parameter).values
     with open(os.path.join(args.project_root,"sorted_parameter.txt"),"w") as f:
         for i in range(sorted_parameter.size(0)):
             f.write(f"{sorted_parameter[i].item()}\n")

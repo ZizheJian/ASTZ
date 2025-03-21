@@ -30,14 +30,6 @@ def quantize_with_pos(block_id:Tuple[int,int,int],delta:Tensor,mask:Tensor,eb:fl
 def quantize_parameter(parameter:Tensor,args:args_c)->Tensor:
     mask_positive=(parameter>=0)
     mask_negative=(~mask_positive)
-    parameter[mask_positive]=torch.ceil((parameter[mask_positive]-args.parameter_eb)/(2*args.parameter_eb))*2*args.parameter_eb
-    parameter[mask_negative]=torch.floor((parameter[mask_negative]+args.parameter_eb)/(2*args.parameter_eb))*2*args.parameter_eb
-    return parameter
-
-def convert_float_parameter_to_int(parameter:Tensor,args:args_c)->Tensor:
-    new_parameter=torch.zeros_like(parameter)
-    mask_positive=(parameter>=0)
-    mask_negative=(~mask_positive)
-    new_parameter[mask_positive]=torch.ceil((parameter[mask_positive]-args.parameter_eb)/(2*args.parameter_eb))
-    new_parameter[mask_negative]=torch.floor((parameter[mask_negative]+args.parameter_eb)/(2*args.parameter_eb))
-    return new_parameter.int()
+    parameter[mask_positive]=torch.ceil((parameter[mask_positive]-args.parameter_eb)/(2*args.parameter_eb))
+    parameter[mask_negative]=torch.floor((parameter[mask_negative]+args.parameter_eb)/(2*args.parameter_eb))
+    return parameter.int()
