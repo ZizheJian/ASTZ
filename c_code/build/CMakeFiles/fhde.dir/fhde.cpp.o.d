@@ -35,4 +35,6 @@ CMakeFiles/fhde.dir/fhde.cpp.o: /home/x-zjian1/FHDE/c_code/fhde.cpp \
  /usr/include/bits/pthreadtypes.h /usr/include/bits/thread-shared-types.h \
  /usr/include/bits/pthreadtypes-arch.h /usr/include/alloca.h \
  /usr/include/bits/stdlib-float.h \
- /apps/spack/anvil/apps/gcc/11.2.0-gcc-8.4.1-qjtdkvs/include/c++/11.2.0/bits/std_abs.h
+ /apps/spack/anvil/apps/gcc/11.2.0-gcc-8.4.1-qjtdkvs/include/c++/11.2.0/bits/std_abs.h \
+ /apps/spack/anvil/apps/gcc/11.2.0-gcc-8.4.1-qjtdkvs/include/c++/11.2.0/cstring \
+ /usr/include/string.h /usr/include/strings.h

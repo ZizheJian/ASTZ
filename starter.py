@@ -1,7 +1,6 @@
 #测试不同model_block_step、pivot_ratio的影响
 
-import subprocess,os,random,copy
-from itertools import product
+import subprocess,os,random
 from typing import List
 
 def call_generate_topology_list(project_directory_path:str,data_path:str,data_shape:List[int],rel_eb:float,method:str,FHDE_threshold:int):
@@ -33,7 +32,7 @@ def call_c_compress(project_directory_path:str,data_path:str,data_shape:List[int
     subprocess.run("make install",cwd=build_path,shell=True,encoding="utf-8")
     os.chdir(project_directory_path)
     command=f"fhde -f -i {data_path} -z {os.path.join(data_path,'.fhde')} -o {os.path.join(data_path,'.fhde.bin')} "
-    command+=f"-E REL {rel_eb} -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M {method} {th} "
+    command+=f"-E REL {rel_eb} -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M {method} {FHDE_threshold} "
     print(command)
     process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     output_lines=[]
@@ -64,18 +63,16 @@ method_residual:str="FHDE"
 FHDE_threshold=2
 FHDE_threshold_average=FHDE_threshold
 FHDE_threshold_residual=FHDE_threshold
-search_threshold:bool=True
+search_threshold:bool=False
 
 starter_file_path=os.path.abspath(__file__)
 project_directory_path=os.path.dirname(starter_file_path)
 
-call_c_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
-exit()
-
 if not search_threshold:
     if not doughnut:
-        call_generate_topology_list(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
-        call_py_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
+        # call_generate_topology_list(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
+        # call_py_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
+        call_c_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
     else:
         raise NotImplementedError
 else:
