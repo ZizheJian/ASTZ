@@ -23,6 +23,26 @@ def call_py_compress(project_directory_path:str,data_path:str,data_shape:List[in
     output=("".join(output_lines)).strip()
     return output
 
+def call_c_compress(project_directory_path:str,data_path:str,data_shape:List[int],rel_eb:float,method:str,FHDE_threshold:int):
+    os.chdir("c_code")
+    os.makedirs("build",exist_ok=True)
+    os.chdir("build")
+    build_path=os.getcwd()
+    subprocess.run(f"cmake -DCMAKE_INSTALL_PREFIX:PATH={os.path.join(project_directory_path,'c_code','install')} ..",cwd=build_path,shell=True,encoding="utf-8")
+    subprocess.run("make",cwd=build_path,shell=True,encoding="utf-8")
+    subprocess.run("make install",cwd=build_path,shell=True,encoding="utf-8")
+    os.chdir(project_directory_path)
+    command=f"fhde -f -i {data_path} -z {os.path.join(data_path,'.fhde')} -o {os.path.join(data_path,'.fhde.bin')} "
+    command+=f"-E REL {rel_eb} -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M {method} {th} "
+    print(command)
+    process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+    output_lines=[]
+    for line in iter(process.stdout.readline,""):
+        print(line,end="",flush=True)
+        output_lines.append(line)
+    output=("".join(output_lines)).strip()
+    return output
+
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_datasets/APSU_TestData_004/APSU_TestData_004_cut.bin"
 # data_shape:List[int]=[614,312,363]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/9-ID_CSSI_data/benchmarkdata/Avg_L0470_Double_exp_elong_siemens_1p00sampit_0p05inplane_patch1_of1_part0_001_cut.bin"
@@ -48,6 +68,9 @@ search_threshold:bool=True
 
 starter_file_path=os.path.abspath(__file__)
 project_directory_path=os.path.dirname(starter_file_path)
+
+call_c_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
+exit()
 
 if not search_threshold:
     if not doughnut:

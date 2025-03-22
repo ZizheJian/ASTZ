@@ -51,138 +51,139 @@ int main(int argc,char **argv)
     if (argc==1)
         usage();
     int width=-1;
-    for (i=1;i<argc;i++)
-    {
-        if (argv[i][0] != '-' || argv[i][2]) {
-            if (argv[i][1]=='h' && argv[i][2]=='2') {
-                usage_sz2();
-            } else {
-                usage();
-            }
-        }
-        switch (argv[i][1]) {
-            case 'h':
-                usage();
-                exit(0);
-            case 'v':
-                printf("version: %s\n", SZ3_VER);
-                exit(0);
-            case 'b':
-                binaryOutput=true;
-                break;
-            case 't':
-                binaryOutput=false;
-                break;
-            case 'a':
-                printCmpResults=1;
-                break;
-            case 'z':
-                compression=true;
-                if (i + 1 < argc) {
-                    cmpPath=argv[i + 1];
-                    if (cmpPath[0] != '-')
-                        i++;
-                    else
-                        cmpPath=nullptr;
-                }
-                break;
-            case 'x':
-                sz2mode=true;
-                decompression=true;
-                if (i + 1 < argc) {
-                    decPath=argv[i + 1];
-                    if (decPath[0] != '-')
-                        i++;
-                    else
-                        decPath=nullptr;
-                }
-                break;
-            case 'f':
-                dataType=SZ_FLOAT;
-                break;
-            case 'd':
-                dataType=SZ_DOUBLE;
-                break;
-            case 'I':
-                if (++i==argc || sscanf(argv[i], "%d", &width) != 1) {
-                    usage();
-                }
-                if (width==32) {
-                    dataType=SZ_INT32;
-                } else if (width==64) {
-                    dataType=SZ_INT64;
-                } else {
-                    usage();
-                }
-                break;
-            case 'i':
-                if (++i==argc) usage();
-                inPath=argv[i];
-                break;
-            case 'o':
-                if (++i==argc) usage();
-                decPath=argv[i];
-                break;
-            case 's':
-                sz2mode=true;
-                if (++i==argc) usage();
-                cmpPath=argv[i];
-                break;
-            case 'c':
-                if (++i==argc) usage();
-                conPath=argv[i];
-                break;
-            case '1':
-                if (++i==argc || sscanf(argv[i], "%zu", &r1) != 1) usage();
-                break;
-            case '2':
-                if (++i==argc || sscanf(argv[i], "%zu", &r1) != 1 || ++i==argc || sscanf(argv[i], "%zu", &r2) != 1)
-                    usage();
-                break;
-            case '3':
-                if (++i==argc || sscanf(argv[i], "%zu", &r1) != 1 || ++i==argc ||
-                    sscanf(argv[i], "%zu", &r2) != 1 || ++i==argc || sscanf(argv[i], "%zu", &r3) != 1)
-                    usage();
-                break;
-            case '4':
-                if (++i==argc || sscanf(argv[i], "%zu", &r1) != 1 || ++i==argc ||
-                    sscanf(argv[i], "%zu", &r2) != 1 || ++i==argc || sscanf(argv[i], "%zu", &r3) != 1 ||
-                    ++i==argc || sscanf(argv[i], "%zu", &r4) != 1)
-                    usage();
-                break;
-            case 'M':
-                if (++i==argc) usage();
-                errBoundMode=argv[i];
-                if (i + 1 < argc && argv[i + 1][0] != '-') {
-                    errBound=argv[++i];
-                }
-                break;
-            case 'A':
-                if (++i==argc) usage();
-                absErrorBound=argv[i];
-                break;
-            case 'R':
-                if (++i==argc) usage();
-                relErrorBound=argv[i];
-                break;
-                //            case 'P':
-                //                if (++i==argc)
-                //                    usage();
-                //                pwrErrorBound=argv[i];
-                //                break;
-            case 'N':
-                if (++i==argc) usage();
-                normErrorBound=argv[i];
-                break;
-            case 'S':
-                if (++i==argc) usage();
-                psnrErrorBound=argv[i];
-                break;
-            default:
-                usage();
-                break;
-        }
-    }
+    exit(0);
+    // for (i=1;i<argc;i++)
+    // {
+    //     if (argv[i][0] != '-' || argv[i][2]) {
+    //         if (argv[i][1]=='h' && argv[i][2]=='2') {
+    //             usage_sz2();
+    //         } else {
+    //             usage();
+    //         }
+    //     }
+    //     switch (argv[i][1]) {
+    //         case 'h':
+    //             usage();
+    //             exit(0);
+    //         case 'v':
+    //             printf("version: %s\n", SZ3_VER);
+    //             exit(0);
+    //         case 'b':
+    //             binaryOutput=true;
+    //             break;
+    //         case 't':
+    //             binaryOutput=false;
+    //             break;
+    //         case 'a':
+    //             printCmpResults=1;
+    //             break;
+    //         case 'z':
+    //             compression=true;
+    //             if (i + 1 < argc) {
+    //                 cmpPath=argv[i + 1];
+    //                 if (cmpPath[0] != '-')
+    //                     i++;
+    //                 else
+    //                     cmpPath=nullptr;
+    //             }
+    //             break;
+    //         case 'x':
+    //             sz2mode=true;
+    //             decompression=true;
+    //             if (i + 1 < argc) {
+    //                 decPath=argv[i + 1];
+    //                 if (decPath[0] != '-')
+    //                     i++;
+    //                 else
+    //                     decPath=nullptr;
+    //             }
+    //             break;
+    //         case 'f':
+    //             dataType=SZ_FLOAT;
+    //             break;
+    //         case 'd':
+    //             dataType=SZ_DOUBLE;
+    //             break;
+    //         case 'I':
+    //             if (++i==argc || sscanf(argv[i], "%d", &width) != 1) {
+    //                 usage();
+    //             }
+    //             if (width==32) {
+    //                 dataType=SZ_INT32;
+    //             } else if (width==64) {
+    //                 dataType=SZ_INT64;
+    //             } else {
+    //                 usage();
+    //             }
+    //             break;
+    //         case 'i':
+    //             if (++i==argc) usage();
+    //             inPath=argv[i];
+    //             break;
+    //         case 'o':
+    //             if (++i==argc) usage();
+    //             decPath=argv[i];
+    //             break;
+    //         case 's':
+    //             sz2mode=true;
+    //             if (++i==argc) usage();
+    //             cmpPath=argv[i];
+    //             break;
+    //         case 'c':
+    //             if (++i==argc) usage();
+    //             conPath=argv[i];
+    //             break;
+    //         case '1':
+    //             if (++i==argc || sscanf(argv[i], "%zu", &r1) != 1) usage();
+    //             break;
+    //         case '2':
+    //             if (++i==argc || sscanf(argv[i], "%zu", &r1) != 1 || ++i==argc || sscanf(argv[i], "%zu", &r2) != 1)
+    //                 usage();
+    //             break;
+    //         case '3':
+    //             if (++i==argc || sscanf(argv[i], "%zu", &r1) != 1 || ++i==argc ||
+    //                 sscanf(argv[i], "%zu", &r2) != 1 || ++i==argc || sscanf(argv[i], "%zu", &r3) != 1)
+    //                 usage();
+    //             break;
+    //         case '4':
+    //             if (++i==argc || sscanf(argv[i], "%zu", &r1) != 1 || ++i==argc ||
+    //                 sscanf(argv[i], "%zu", &r2) != 1 || ++i==argc || sscanf(argv[i], "%zu", &r3) != 1 ||
+    //                 ++i==argc || sscanf(argv[i], "%zu", &r4) != 1)
+    //                 usage();
+    //             break;
+    //         case 'M':
+    //             if (++i==argc) usage();
+    //             errBoundMode=argv[i];
+    //             if (i + 1 < argc && argv[i + 1][0] != '-') {
+    //                 errBound=argv[++i];
+    //             }
+    //             break;
+    //         case 'A':
+    //             if (++i==argc) usage();
+    //             absErrorBound=argv[i];
+    //             break;
+    //         case 'R':
+    //             if (++i==argc) usage();
+    //             relErrorBound=argv[i];
+    //             break;
+    //             //            case 'P':
+    //             //                if (++i==argc)
+    //             //                    usage();
+    //             //                pwrErrorBound=argv[i];
+    //             //                break;
+    //         case 'N':
+    //             if (++i==argc) usage();
+    //             normErrorBound=argv[i];
+    //             break;
+    //         case 'S':
+    //             if (++i==argc) usage();
+    //             psnrErrorBound=argv[i];
+    //             break;
+    //         default:
+    //             usage();
+    //             break;
+    //     }
+    // }
 
 //     if ((inPath==nullptr) && (cmpPath==nullptr)) {
 //         printf("Error: you need to specify either a raw binary data file or a compressed data file as input\n");
