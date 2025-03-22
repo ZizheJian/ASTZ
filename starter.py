@@ -4,6 +4,25 @@ import subprocess,os,random,copy
 from itertools import product
 from typing import List
 
+def call_generate_topology_list(project_directory_path:str,data_path:str,data_shape:List[int],rel_eb:float,method:str,FHDE_threshold:int):
+    command=f"python3 {os.path.join(project_directory_path,'py_code','generate_topology_list.py')} "
+    command+=f"-f -i {data_path} -E REL {rel_eb} -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M {method} {FHDE_threshold} "
+    print(command)
+    subprocess.run(command,shell=True,encoding="utf-8")
+
+def call_py_compress(project_directory_path:str,data_path:str,data_shape:List[int],rel_eb:float,method:str,FHDE_threshold:int):
+    command=f"python3 {os.path.join(project_directory_path,'py_code','compress.py')} "
+    command+=f"-f -i {data_path} -z {os.path.join(data_path,'.fhde')} -o {os.path.join(data_path,'.fhde.bin')} "
+    command+=f"-E REL {rel_eb} -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M {method} {th} "
+    print(command)
+    process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+    output_lines=[]
+    for line in iter(process.stdout.readline,""):
+        print(line,end="",flush=True)
+        output_lines.append(line)
+    output=("".join(output_lines)).strip()
+    return output
+
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_datasets/APSU_TestData_004/APSU_TestData_004_cut.bin"
 # data_shape:List[int]=[614,312,363]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/9-ID_CSSI_data/benchmarkdata/Avg_L0470_Double_exp_elong_siemens_1p00sampit_0p05inplane_patch1_of1_part0_001_cut.bin"
@@ -17,7 +36,7 @@ from typing import List
 data_path:str="/anvil/projects/x-cis240192/x-zjian1/NYX/baryon_density_cut.f32"
 data_shape:List[str]=[256,256,256]
 
-rel_eb:float=1e-4
+rel_eb:float=1e-3
 doughnut:bool=False
 method:str="FHDE"
 method_average:str="FHDE"
@@ -25,82 +44,54 @@ method_residual:str="FHDE"
 FHDE_threshold=2
 FHDE_threshold_average=FHDE_threshold
 FHDE_threshold_residual=FHDE_threshold
-search_threshold:bool=False
+search_threshold:bool=True
 
 starter_file_path=os.path.abspath(__file__)
-code_directory_path=os.path.dirname(starter_file_path)
+project_directory_path=os.path.dirname(starter_file_path)
 
 if not search_threshold:
     if not doughnut:
-        command=f"python3 {os.path.join(code_directory_path,'generate_topology_list.py')} "
-        command+=f"-f -i {data_path} -E REL {rel_eb} -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M {method} {FHDE_threshold} "
-        print(command)
-        subprocess.run(command,shell=True,encoding="utf-8")
-        command=f"python3 {os.path.join(code_directory_path,'compress.py')} "
-        command+=f"-f -i {data_path} -z {os.path.join(data_path,'.fhde')} -o {os.path.join(data_path,'.fhde.bin')} "
-        command+=f"-E REL {rel_eb} -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M {method} {FHDE_threshold} "
-        print(command)
-        subprocess.run(command,shell=True,encoding="utf-8")
+        call_generate_topology_list(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
+        call_py_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
     else:
         raise NotImplementedError
 else:
-    th_preset=[[FHDE_threshold]]
-    th_valid=[True]
-    key_length=len(th_preset[0])
+    th_preset=FHDE_threshold
     while True:
         threshold_dict={}
         with open("threshold.txt","r") as f:
             for line in f.readlines():
                 splited_line=line.split(" ")
-                key=tuple([int(i) for i in splited_line[0:key_length]])
-                threshold_dict[key]=float(splited_line[key_length])
+                threshold_dict[int(splited_line[0])]=float(splited_line[1])
         if len(threshold_dict)==0:
             print("threshold.txt is empty")
-            th=copy.deepcopy(th_preset[0])
+            th=th_preset
         else:
-            found_th_preset_not_tested=False
-            for th in th_preset:
-                if tuple(th) not in threshold_dict:
-                    found_th_preset_not_tested=True
+            for index in range(len(threshold_dict)):
+                th=list(threshold_dict.keys())[index]
+                print(f"index={index},th={th}")
+                found_unsearched=False
+                possible_directions=[-1,0,1]
+                possible_directions=[i for i in possible_directions if th+i>0]
+                random.shuffle(possible_directions)
+                for d_th in possible_directions:
+                    new_th=th+d_th
+                    if new_th not in threshold_dict:
+                        th=new_th
+                        found_unsearched=True
+                if not found_unsearched:
+                    continue
+                else:
                     break
-            if found_th_preset_not_tested:
-                pass
-            else:
-                for index in range(len(threshold_dict)):
-                    th=[int(i) for i in list(threshold_dict.keys())[index]]
-                    print(f"index={index},th={th}")
-                    found_unsearched=False
-                    possible_directions=list(product([-1,0,1],repeat=key_length))
-                    possible_directions=[list(i) for i in possible_directions]
-                    possible_directions=[i for i in possible_directions if all([th_valid[j] or i[j]==0 for j in range(key_length)])]
-                    random.shuffle(possible_directions)
-                    for d_th in possible_directions:
-                        new_th=[th[i]+d_th[i] for i in range(key_length)]
-                        if tuple(new_th) not in threshold_dict and not found_unsearched and all([new_th[i]>0 or not th_valid[i] for i in range(key_length)]):
-                            th=new_th
-                            found_unsearched=True
-                    if not found_unsearched:
-                        continue
-                    else:
-                        break
-        print(f"current th={th[0]}")
-        command=f"python3 {os.path.join(code_directory_path,'generate_topology_list.py')} "
-        command+=f"-f -i {data_path} -E REL {rel_eb} -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M {method} {th[0]} "
-        print(command)
-        subprocess.run(command,shell=True,encoding="utf-8")
-        command=f"python3 {os.path.join(code_directory_path,'compress.py')} "
-        command+=f"-f -i {data_path} -z {os.path.join(data_path,'.fhde')} -o {os.path.join(data_path,'.fhde.bin')} "
-        command+=f"-E REL {rel_eb} -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M {method} {th[0]} "
-        print(command)
-        output=subprocess.run(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE).stdout
-        cr=float(output.strip().split("\n")[-1].split(" ")[-1])
-        threshold_dict[tuple(th)]=cr
+        print(f"current th={th}")
+        call_generate_topology_list(project_directory_path,data_path,data_shape,rel_eb,method,th)
+        output=call_py_compress(project_directory_path,data_path,data_shape,rel_eb,method,th)
+        cr=float(output.split("\n")[-1].split(" ")[-1])
+        threshold_dict[th]=cr
         sorted_threshold_dict=sorted(threshold_dict.items(),key=lambda x:x[1],reverse=True)
         with open("threshold.txt","w") as f:
             for key,value in sorted_threshold_dict:
-                for i in key:
-                    f.write(f"{i} ")
-                f.write(f"{value}\n")
+                f.write(f"{key} {value}\n")
         print(f"th={th},cr={cr}")
 
 #APSU_TestData_004_cut

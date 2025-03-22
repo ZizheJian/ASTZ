@@ -1,0 +1,7 @@
+Installation:
+
+cd c_code
+mkdir build && cd build
+cmake -DCMAKE_INSTALL_PREFIX:PATH=[INSTALL_DIR] ..
+make
+make install
