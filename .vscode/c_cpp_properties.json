@@ -15,8 +15,8 @@
             "browse": {
                 "path": [
                     "${workspaceFolder}/c_code/*",
-                    "${workspaceFolder}/c_code/SZ3/include",
-                    "${workspaceFolder}/c_code/SZ3/tools"
+                    "${workspaceFolder}/c_code/SZ3/include/**",
+                    "${workspaceFolder}/c_code/SZ3/tools/**"
                 ],
                 "limitSymbolsToIncludedHeaders": true,
                 "databaseFilename": ""
