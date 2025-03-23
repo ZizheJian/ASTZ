@@ -1,6 +1,0 @@
-/home/x-zjian1/FHDE/c_code/install/bin/fhde
-/home/x-zjian1/FHDE/c_code/install/lib/libzstd.so
-/home/x-zjian1/FHDE/c_code/install/include/zbuff.h
-/home/x-zjian1/FHDE/c_code/install/include/zdict.h
-/home/x-zjian1/FHDE/c_code/install/include/zstd.h
-/home/x-zjian1/FHDE/c_code/install/include/zstd_errors.h
