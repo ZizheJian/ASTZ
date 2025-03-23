@@ -4,7 +4,7 @@
 # compile CXX with /apps/spack/anvil/apps/openmpi/4.0.6-gcc-11.2.0-3navcwb/bin/mpiCC
 CXX_DEFINES = 
 
-CXX_INCLUDES = 
+CXX_INCLUDES = -I/home/x-zjian1/FHDE/c_code/zstd
 
 CXX_FLAGS = 
 

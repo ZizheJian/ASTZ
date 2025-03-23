@@ -92,6 +92,7 @@ fhde_EXTERNAL_OBJECTS =
 
 fhde: CMakeFiles/fhde.dir/fhde.cpp.o
 fhde: CMakeFiles/fhde.dir/build.make
+fhde: zstd/libzstd.so
 fhde: CMakeFiles/fhde.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/x-zjian1/FHDE/c_code/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable fhde"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/fhde.dir/link.txt --verbose=$(VERBOSE)

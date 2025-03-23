@@ -5,9 +5,9 @@ namespace FHDE{
     
 typedef unsigned int uint;
 typedef unsigned char uchar;
-#define SZ_ERROR_COMP_BUFFER_NOT_LARGE_ENOUGH \
+#define FHDE_ERROR_COMP_BUFFER_NOT_LARGE_ENOUGH \
     "The buffer for compressed data is not large enough."
-}  // namespace SZ3
+}
 
 #ifdef _MSC_VER
 #define ALWAYS_INLINE __forceinline

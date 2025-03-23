@@ -2,6 +2,7 @@
 #define FHDE_HPP
 
 #include "Config.hpp"
+#include "fhdeimpl.hpp"
 
 // #include "SZ3/api/impl/SZImpl.hpp"
 // #include "SZ3/version.hpp"
@@ -55,15 +56,16 @@ char *compressedData = SZ_compress(conf, data, outSize);
 template <class T>
 size_t FHDE_compress(const FHDE::Config &config, const T *data, char *cmpData, size_t cmpCap)
 {
-    printf("FHDE_compress\n");
-    printf("config: %d\n", config.N);
-    // using namespace SZ3;
-    // Config conf(config);
+    using namespace FHDE;
+    Config conf(config);
     
-    // if (cmpCap < SZ_compress_size_bound<T>(conf)) {
-    //     fprintf(stderr, "%s\n", SZ_ERROR_COMP_BUFFER_NOT_LARGE_ENOUGH);
-    //     throw std::invalid_argument(SZ_ERROR_COMP_BUFFER_NOT_LARGE_ENOUGH);
-    // }
+    printf("FHDE_compress_size_bound<T>(conf): %lu\n", FHDE_compress_size_bound<T>(conf));
+    printf("cmpCap: %lu\n", cmpCap);
+    if (cmpCap<FHDE_compress_size_bound<T>(conf))
+    {
+        fprintf(stderr, "%s\n", FHDE_ERROR_COMP_BUFFER_NOT_LARGE_ENOUGH);
+        throw std::invalid_argument(FHDE_ERROR_COMP_BUFFER_NOT_LARGE_ENOUGH);
+    }
     
     // auto cmpDataPos = reinterpret_cast<uchar *>(cmpData) + conf.size_est();
     // auto cmpDataCap = cmpCap - conf.size_est();

@@ -174,6 +174,19 @@ fhde/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/fhde.dir/build.make CMakeFiles/fhde.dir/build
 .PHONY : fhde/fast
 
+#=============================================================================
+# Target rules for targets named zstd
+
+# Build rule for target.
+zstd: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 zstd
+.PHONY : zstd
+
+# fast build rule for target.
+zstd/fast:
+	$(MAKE) $(MAKESILENT) -f zstd/CMakeFiles/zstd.dir/build.make zstd/CMakeFiles/zstd.dir/build
+.PHONY : zstd/fast
+
 fhde.o: fhde.cpp.o
 .PHONY : fhde.o
 
@@ -211,6 +224,7 @@ help:
 	@echo "... list_install_components"
 	@echo "... rebuild_cache"
 	@echo "... fhde"
+	@echo "... zstd"
 	@echo "... fhde.o"
 	@echo "... fhde.i"
 	@echo "... fhde.s"

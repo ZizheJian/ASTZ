@@ -265,7 +265,7 @@ class Config{
     //     //     throw std::invalid_argument("Config loaded size is larger than estimated size");
     //     // } else{
     //     //     // for padding
-    //     //     c=c0 + size_est();
+    //     //     c=c0+size_est();
     //     // }
     // }
 
@@ -302,9 +302,10 @@ class Config{
     //     printf("===================== End SZ3 Configuration =====================\n");
     // }
 
-    // static size_t size_est(){
-    //     return sizeof(Config) + sizeof(size_t) * 5;  // sizeof(size_t) * 5 is for dims vector
-    // }
+    static size_t size_est()
+    {
+        return sizeof(Config)+sizeof(size_t)*5;
+    }
 
     // uint32_t sz3MagicNumber=SZ3_MAGIC_NUMBER;
     // uint32_t sz3DataVer=versionInt(SZ3_DATA_VER);

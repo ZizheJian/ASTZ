@@ -5,3 +5,10 @@
 /home/x-zjian1/FHDE/c_code/build/CMakeFiles/install.dir
 /home/x-zjian1/FHDE/c_code/build/CMakeFiles/install/local.dir
 /home/x-zjian1/FHDE/c_code/build/CMakeFiles/install/strip.dir
+/home/x-zjian1/FHDE/c_code/build/zstd/CMakeFiles/zstd.dir
+/home/x-zjian1/FHDE/c_code/build/zstd/CMakeFiles/edit_cache.dir
+/home/x-zjian1/FHDE/c_code/build/zstd/CMakeFiles/rebuild_cache.dir
+/home/x-zjian1/FHDE/c_code/build/zstd/CMakeFiles/list_install_components.dir
+/home/x-zjian1/FHDE/c_code/build/zstd/CMakeFiles/install.dir
+/home/x-zjian1/FHDE/c_code/build/zstd/CMakeFiles/install/local.dir
+/home/x-zjian1/FHDE/c_code/build/zstd/CMakeFiles/install/strip.dir

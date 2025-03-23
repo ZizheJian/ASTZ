@@ -1,1 +1,1 @@
-/apps/spack/anvil/apps/openmpi/4.0.6-gcc-11.2.0-3navcwb/bin/mpiCC CMakeFiles/fhde.dir/fhde.cpp.o -o fhde 
+/apps/spack/anvil/apps/openmpi/4.0.6-gcc-11.2.0-3navcwb/bin/mpiCC CMakeFiles/fhde.dir/fhde.cpp.o -o fhde  -Wl,-rpath,/home/x-zjian1/FHDE/c_code/build/zstd: zstd/libzstd.so 
