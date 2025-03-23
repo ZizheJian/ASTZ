@@ -32,7 +32,7 @@ def call_c_compress(project_directory_path:str,data_path:str,data_shape:List[int
     subprocess.run("make",cwd=build_path,shell=True,encoding="utf-8")
     subprocess.run("make install",cwd=build_path,shell=True,encoding="utf-8")
     os.chdir(project_directory_path)
-    command=f"fhde -f -i {data_path} -z {os.path.join(data_path,'.fhde')} -o {os.path.join(data_path,'.fhde.bin')} "
+    command=f"fhde -f -i {data_path} -z {data_path+'.fhde'} -o {data_path+'.fhde.bin'} "
     command+=f"-t {os.path.join(project_directory_path,'topology_list',data_name+'.txt')} -E REL {rel_eb} -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M {method} {FHDE_threshold} "
     print(command)
     process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.PIPE)

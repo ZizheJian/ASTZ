@@ -1,5 +1,5 @@
-#ifndef SZ_Config_HPP
-#define SZ_Config_HPP
+#ifndef FHDE_Config_HPP
+#define FHDE_Config_HPP
 
 #include <cstdint>
 #include <iostream>
@@ -308,9 +308,9 @@ class Config{
 
     // uint32_t sz3MagicNumber=SZ3_MAGIC_NUMBER;
     // uint32_t sz3DataVer=versionInt(SZ3_DATA_VER);
-    char N=0;
+    char N=0;//number of dimensions
     std::vector<size_t> dims;
-    size_t num=0;
+    size_t num=0;//number of data points
     // uint8_t cmprAlgo=ALGO_INTERP_LORENZO;
     uint8_t eb_mode=EB_ABS;
     // double absErrorBound=1e-3;

@@ -3,6 +3,9 @@
 #include <cstdlib>
 #include <cstring>
 #include "Config.hpp"
+#include "FileUtil.hpp"
+#include "Timer.hpp"
+#include "fhde.hpp"
 
 inline void usage()
 {
@@ -22,11 +25,9 @@ inline void usage()
     printf("* topology list file:\n");
     printf("    -t <topology list file>: topology list file\n");
     printf("* error control:\n");
-    printf("    -E <error control mode> <error bound (optional)>\n");
+    printf("    -E <error control mode> <error bound>\n");
     printf("    error control mode as follows:\n");
     printf("        REL (value range based error bound, so a.k.a., VR_REL)\n");
-    printf("    error bound can be set directly after the error control mode, or separately with the following options:\n");
-    printf("        -R <value_range based relative error bound>: specifying relative error bound\n");
     printf("* method:\n");
     printf("    -M <method> <threshold (optional)>\n");
     printf("    method as follows:\n");
@@ -35,6 +36,33 @@ inline void usage()
     printf("* dimensions:\n");
     printf("    -3 <nx> <ny> <nz>: dimensions for 3D data such as data[nz][ny][nx]\n");
     exit(0);
+}
+
+template <class T>
+void compress(char *inPath,char *cmpPath,FHDE::Config conf)
+{
+    T *data=new T[conf.num];
+    FHDE::readfile<T>(inPath,conf.num,data);
+    size_t bytesCap=2*conf.num*sizeof(T);
+    auto bytes=new char[bytesCap];
+
+    FHDE::Timer timer(true);
+    size_t outSize=FHDE_compress<T>(conf,data,bytes,bytesCap);
+    double compress_time=timer.stop();
+
+    char outputFilePath[1024];
+    if (cmpPath==nullptr)
+        snprintf(outputFilePath,1024,"%s.fhde",inPath);
+    else
+        strcpy(outputFilePath,cmpPath);
+    FHDE::writefile(outputFilePath,bytes,outSize);
+
+    printf("compression ratio=%.2f \n",conf.num*1.0*sizeof(T) / outSize);
+    printf("compression time=%f\n",compress_time);
+    printf("compressed data file=%s\n",outputFilePath);
+
+    delete[] data;
+    delete[] bytes;
 }
 
 int main(int argc,char **argv)
@@ -64,7 +92,7 @@ int main(int argc,char **argv)
     if (argc==1)    usage();
     int width=-1;
     for (i=1;i<argc;i++)
-   {
+    {
         if ((argv[i][0]!='-') || (argv[i][2]))  usage();
         switch (argv[i][1]){
             case 'h':   usage();
@@ -109,10 +137,6 @@ int main(int argc,char **argv)
                 eb_mode=argv[i];
                 if (i+1<argc && argv[i+1][0]!='-')  eb=argv[++i];
                 break;
-            case 'R':
-                if (++i==argc)  usage();
-                rel_eb=argv[i];
-                break;
             case 'M':
                 if (++i==argc)  usage();
                 method=argv[i];
@@ -156,51 +180,20 @@ int main(int argc,char **argv)
     FHDE::Config conf=FHDE::Config(r3,r2,r1);
     if (eb_mode!=nullptr)
     {
-        conf.rel_eb=atof(rel_eb);
+        conf.rel_eb=atof(eb);
         conf.eb_mode=FHDE::EB_REL;
     }
-
-//     if (compression){
-//         if (dataType==SZ_FLOAT){
-//             compress<float>(in_path,cmp_path,conf);
-// #if (!SZ3_DEBUG_TIMINGS)
-//         } else if (dataType==SZ_DOUBLE){
-//             compress<double>(in_path,cmp_path,conf);
-//         } else if (dataType==SZ_INT32){
-//             compress<int32_t>(in_path,cmp_path,conf);
-//         } else if (dataType==SZ_INT64){
-//             compress<int64_t>(in_path,cmp_path,conf);
-// #endif
-//         } else{
-//             printf("Error: data type not supported\n");
-//             usage();
-//             exit(0);
-//         }
-//     }
-//     if (decompression){
-//         if (print_analysis_results && in_path==nullptr){
-//             printf("Error: Since you add -a option (analysis),please specify the original data path by -i <path>.\n");
-//             exit(0);
-//         }
-
-//         if (dataType==SZ_FLOAT){
-//             decompress<float>(in_path,cmp_path,decmp_path,conf,binaryOutput,print_analysis_results);
-// #if (!SZ3_DEBUG_TIMINGS)
-//         } else if (dataType==SZ_DOUBLE){
-//             decompress<double>(in_path,cmp_path,decmp_path,conf,binaryOutput,print_analysis_results);
-//         } else if (dataType==SZ_INT32){
-//             decompress<int32_t>(in_path,cmp_path,decmp_path,conf,binaryOutput,print_analysis_results);
-//         } else if (dataType==SZ_INT64){
-//             decompress<int64_t>(in_path,cmp_path,decmp_path,conf,binaryOutput,print_analysis_results);
-// #endif
-//         } else{
-//             printf("Error: data type not supported\n");
-//             usage();
-//             exit(0);
-//         }
-//     }
-//     if (del_cmp_path){
-//         remove(cmp_path);
-//     }
-//     return 0;
+    if (compression)
+        compress<float>(in_path,cmp_path,conf);
+    // if (decompression)
+    // {
+    //     if ((print_analysis_results) && (in_path==nullptr))
+    //     {
+    //         printf("Error: Since you add -a option (analysis), please specify the original data path by -i <path>.\n");
+    //         exit(0);
+    //     }
+    //     decompress<float>(in_path,cmp_path,decmp_path,conf,print_analysis_results);
+    // }
+    if (del_cmp_path)
+        remove(cmp_path);
 }
