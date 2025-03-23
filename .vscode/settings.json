@@ -1,3 +1,12 @@
 {
-    "cmake.ignoreCMakeListsMissing": true
+    "cmake.ignoreCMakeListsMissing": true,
+    "search.exclude":{
+        "**/install": true
+    },
+    "files.exclude": {
+        "**/install": true
+    },
+    "C_Cpp.files.exclude": {
+        "**/install": true
+    }
 }

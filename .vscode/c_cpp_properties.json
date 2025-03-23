@@ -1,0 +1,27 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/c_code/*",
+                "${workspaceFolder}/c_code/SZ3/include/**",
+                "${workspaceFolder}/c_code/SZ3/tools/**"
+            ],
+            "defines": [],
+            "compilerPath": "/apps/spack/anvil/apps/gcc/11.2.0-gcc-8.4.1-qjtdkvs/bin/gcc",
+            "cStandard": "c17",
+            "cppStandard": "gnu++17",
+            "intelliSenseMode": "linux-gcc-x64",
+            "browse": {
+                "path": [
+                    "${workspaceFolder}/c_code/*",
+                    "${workspaceFolder}/c_code/SZ3/include",
+                    "${workspaceFolder}/c_code/SZ3/tools"
+                ],
+                "limitSymbolsToIncludedHeaders": true,
+                "databaseFilename": ""
+            }
+        }
+    ],
+    "version": 4
+}

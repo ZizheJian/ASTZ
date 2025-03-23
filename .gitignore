@@ -1,4 +1,6 @@
 freq/
-mask_pos/
 png/
 qb/
+topology_list/
+c_code/build/
+c_code/install/

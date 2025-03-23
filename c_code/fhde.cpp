@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include "Config.hpp"
 
 inline void usage()
 {
@@ -16,6 +17,8 @@ inline void usage()
     printf("    -z <path>: compressed file\n");
     printf("* data type:\n");
     printf("    -f: single precision (float type)\n");
+    printf("* configuration file: \n");
+    printf("    -c <configuration file>: configuration file\n");
     printf("* topology list file:\n");
     printf("    -t <topology list file>: topology list file\n");
     printf("* error control:\n");
@@ -41,9 +44,10 @@ int main(int argc,char **argv)
     bool decompression=false;
     char *in_path=nullptr;
     char *cmp_path=nullptr;
+    char *cfg_path=nullptr;
     char *topology_path=nullptr;
-    char *decom_path=nullptr;
-    bool delCmpPath=false;
+    char *decmp_path=nullptr;
+    bool del_cmp_path=false;
 
     char *eb_mode=nullptr;
     char *eb=nullptr;
@@ -60,9 +64,9 @@ int main(int argc,char **argv)
     if (argc==1)    usage();
     int width=-1;
     for (i=1;i<argc;i++)
-    {
+   {
         if ((argv[i][0]!='-') || (argv[i][2]))  usage();
-        switch (argv[i][1]) {
+        switch (argv[i][1]){
             case 'h':   usage();
             case 'a':
                 print_analysis_results=1;
@@ -70,7 +74,7 @@ int main(int argc,char **argv)
             case 'z':
                 compression=true;
                 if (i+1<argc)
-                {
+               {
                     cmp_path=argv[i+1];
                     if (cmp_path[0]!='-')
                         i++;
@@ -85,7 +89,11 @@ int main(int argc,char **argv)
                 break;
             case 'o':
                 if (++i==argc)  usage();
-                decom_path=argv[i];
+                decmp_path=argv[i];
+                break;
+            case 'c':
+                if (++i==argc)  usage();
+                cfg_path=argv[i];
                 break;
             case 't':
                 if (++i==argc)  usage();
@@ -119,137 +127,79 @@ int main(int argc,char **argv)
                 break;
         }
     }
-    exit(0);
 
-//     if ((in_path==nullptr) && (cmp_path==nullptr)) {
-//         printf("Error: you need to specify either a raw binary data file or a compressed data file as input\n");
-//         usage();
-//         exit(0);
-//     }
+    if ((in_path==nullptr) && (cmp_path==nullptr))
+    {
+        printf("Error: you need to specify either a raw binary data file or a compressed data file as input\n");
+        usage();
+    }
+    if (topology_path==nullptr)
+    {
+        printf("Error: you need to specify a topology list file\n");
+        usage();
+    }
 
-//     if (!sz2mode && in_path!=nullptr && cmp_path!=nullptr) {
-//         compression=true;
-//     }
-//     if (cmp_path!=nullptr && decom_path!=nullptr) {
-//         decompression=true;
-//     }
-//     char cmpPathTmp[1024];
-//     if (in_path!=nullptr && cmp_path==nullptr && decom_path!=nullptr) {
-//         compression=true;
-//         decompression=true;
-//         snprintf(cmpPathTmp,1024,"%s.sz.tmp",in_path);
-//         cmp_path=cmpPathTmp;
-//         delCmpPath=true;
-//     }
-//     if (in_path==nullptr || eb_mode==nullptr) {
-//         compression=false;
-//     }
-//     if (!compression && !decompression) {
-//         usage();
-//         exit(0);
-//     }
+    if ((in_path!=nullptr) && (cmp_path!=nullptr))  compression=true;
+    if ((cmp_path!=nullptr) && (decmp_path!=nullptr))   decompression=true;
+    char cmp_path_tmp[1024];
+    if ((in_path!=nullptr) && (cmp_path==nullptr) && (decmp_path!=nullptr))
+    {
+        compression=true;
+        decompression=true;
+        snprintf(cmp_path_tmp,1024,"%s.fhde.tmp",in_path);
+        cmp_path=cmp_path_tmp;
+        del_cmp_path=true;
+    }
+    if (in_path==nullptr)   compression=false;
+    if ((!compression) && (!decompression)) usage();
 
-//     SZ3::Config conf;
-//     if (r2==0) {
-//         conf=SZ3::Config(r1);
-//     } else if (r3==0) {
-//         conf=SZ3::Config(r2,r1);
-//     } else if (r4==0) {
-//         conf=SZ3::Config(r3,r2,r1);
-//     } else {
-//         conf=SZ3::Config(r4,r3,r2,r1);
-//     }
-//     if (compression && topology_path!=nullptr) {
-//         conf.loadcfg(topology_path);
-//     }
+    FHDE::Config conf=FHDE::Config(r3,r2,r1);
+    if (eb_mode!=nullptr)
+    {
+        conf.rel_eb=atof(rel_eb);
+        conf.eb_mode=FHDE::EB_REL;
+    }
 
-//     if (eb_mode!=nullptr) {
-//         {
-//             // backward compatible with SZ2
-//             if (rel_eb!=nullptr) {
-//                 conf.rel_eb=atof(rel_eb);
-//             }
-//             if (absErrorBound!=nullptr) {
-//                 conf.absErrorBound=atof(absErrorBound);
-//             }
-//             if (psnrErrorBound!=nullptr) {
-//                 conf.psnrErrorBound=atof(psnrErrorBound);
-//             }
-//             if (normErrorBound!=nullptr) {
-//                 conf.l2normErrorBound=atof(normErrorBound);
-//             }
-//         }
-//         if (strcmp(eb_mode,SZ3::EB_STR[SZ3::EB_ABS])==0) {
-//             conf.errorBoundMode=SZ3::EB_ABS;
-//             if (eb!=nullptr) {
-//                 conf.absErrorBound=atof(eb);
-//             }
-//         } else if (strcmp(eb_mode,SZ3::EB_STR[SZ3::EB_REL])==0 || strcmp(eb_mode,"VR_REL")==0) {
-//             conf.errorBoundMode=SZ3::EB_REL;
-//             if (eb!=nullptr) {
-//                 conf.rel_eb=atof(eb);
-//             }
-//         } else if (strcmp(eb_mode,SZ3::EB_STR[SZ3::EB_PSNR])==0) {
-//             conf.errorBoundMode=SZ3::EB_PSNR;
-//             if (eb!=nullptr) {
-//                 conf.psnrErrorBound=atof(eb);
-//             }
-//         } else if (strcmp(eb_mode,SZ3::EB_STR[SZ3::EB_L2NORM])==0) {
-//             conf.errorBoundMode=SZ3::EB_L2NORM;
-//             if (eb!=nullptr) {
-//                 conf.l2normErrorBound=atof(eb);
-//             }
-//         } else if (strcmp(eb_mode,SZ3::EB_STR[SZ3::EB_ABS_AND_REL])==0) {
-//             conf.errorBoundMode=SZ3::EB_ABS_AND_REL;
-//         } else if (strcmp(eb_mode,SZ3::EB_STR[SZ3::EB_ABS_OR_REL])==0) {
-//             conf.errorBoundMode=SZ3::EB_ABS_OR_REL;
-//         } else {
-//             printf("Error: wrong error bound mode setting by using the option '-M'\n");
-//             usage();
-//             exit(0);
-//         }
-//     }
-
-//     if (compression) {
-//         if (dataType==SZ_FLOAT) {
+//     if (compression){
+//         if (dataType==SZ_FLOAT){
 //             compress<float>(in_path,cmp_path,conf);
 // #if (!SZ3_DEBUG_TIMINGS)
-//         } else if (dataType==SZ_DOUBLE) {
+//         } else if (dataType==SZ_DOUBLE){
 //             compress<double>(in_path,cmp_path,conf);
-//         } else if (dataType==SZ_INT32) {
+//         } else if (dataType==SZ_INT32){
 //             compress<int32_t>(in_path,cmp_path,conf);
-//         } else if (dataType==SZ_INT64) {
+//         } else if (dataType==SZ_INT64){
 //             compress<int64_t>(in_path,cmp_path,conf);
 // #endif
-//         } else {
+//         } else{
 //             printf("Error: data type not supported\n");
 //             usage();
 //             exit(0);
 //         }
 //     }
-//     if (decompression) {
-//         if (print_analysis_results && in_path==nullptr) {
+//     if (decompression){
+//         if (print_analysis_results && in_path==nullptr){
 //             printf("Error: Since you add -a option (analysis),please specify the original data path by -i <path>.\n");
 //             exit(0);
 //         }
 
-//         if (dataType==SZ_FLOAT) {
-//             decompress<float>(in_path,cmp_path,decom_path,conf,binaryOutput,print_analysis_results);
+//         if (dataType==SZ_FLOAT){
+//             decompress<float>(in_path,cmp_path,decmp_path,conf,binaryOutput,print_analysis_results);
 // #if (!SZ3_DEBUG_TIMINGS)
-//         } else if (dataType==SZ_DOUBLE) {
-//             decompress<double>(in_path,cmp_path,decom_path,conf,binaryOutput,print_analysis_results);
-//         } else if (dataType==SZ_INT32) {
-//             decompress<int32_t>(in_path,cmp_path,decom_path,conf,binaryOutput,print_analysis_results);
-//         } else if (dataType==SZ_INT64) {
-//             decompress<int64_t>(in_path,cmp_path,decom_path,conf,binaryOutput,print_analysis_results);
+//         } else if (dataType==SZ_DOUBLE){
+//             decompress<double>(in_path,cmp_path,decmp_path,conf,binaryOutput,print_analysis_results);
+//         } else if (dataType==SZ_INT32){
+//             decompress<int32_t>(in_path,cmp_path,decmp_path,conf,binaryOutput,print_analysis_results);
+//         } else if (dataType==SZ_INT64){
+//             decompress<int64_t>(in_path,cmp_path,decmp_path,conf,binaryOutput,print_analysis_results);
 // #endif
-//         } else {
+//         } else{
 //             printf("Error: data type not supported\n");
 //             usage();
 //             exit(0);
 //         }
 //     }
-//     if (delCmpPath) {
+//     if (del_cmp_path){
 //         remove(cmp_path);
 //     }
 //     return 0;
