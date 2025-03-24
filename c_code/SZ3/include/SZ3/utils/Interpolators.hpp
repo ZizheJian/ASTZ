@@ -27,6 +27,16 @@ inline T interp_linear1_2d(T a, T a_left, T a_right) {
 }
 
 template <class T>
+inline T interp_linear_3d(T a, T a_1, T a_2, T a_3, T a_4, T a_5, T a_6, T a_7, T a_8, T b, T b_1, T b_2, T b_3, T b_4, T b_5, T b_6, T b_7, T b_8) {
+    return (a + a_1 + a_2 + a_3 + a_4 + a_5 + a_6 + a_7 + a_8 + b + b_1 + b_2 + b_3 + b_4 + b_5 + b_6 + b_7 + b_8) / 18;
+}
+
+template <class T>
+inline T interp_linear1_3d(T a, T a_1, T a_2, T a_3, T a_4, T a_5, T a_6, T a_7, T a_8) {
+    return (a + a_1 + a_2 + a_3 + a_4 + a_5 + a_6 + a_7 + a_8) / 9;
+}
+
+template <class T>
 inline T interp_quad_1(T a, T b, T c) {
     return (3 * a + 6 * b - c) / 8;
 }

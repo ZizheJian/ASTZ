@@ -182,7 +182,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
 
     inline void recover(size_t idx, T &d, T pred) { d = quantizer.recover(pred, quant_inds[quant_index++]); }
     
-    double block_interpolation_3d(T *data, size_t begin, size_t end, size_t stride, const std::string &interp_func,
+    double block_interpolation_3d(T *data, size_t begin, size_t end, size_t stride, size_t stride_p1, size_t stride_p2, const std::string &interp_func,
                                   const PredictorBehavior pb) {
         // { // Log
         //     std::cout << "[Log] begin: " << begin << ", end: " << end << ", stride: " << stride << std::endl;
@@ -195,21 +195,85 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
 
         size_t stride3x = 3 * stride;
         size_t stride5x = 5 * stride;
-        assert(pb == PB_predict_overwrite); 
-        // 
-        for (size_t i = 1; i + 1 < n; i += 2) {
-            T *d = data + begin + i * stride;
-            quantize(d - data, *d, interp_linear(*(d - stride), *(d + stride)));
-        }
-        if (n % 2 == 0) {
-            T *d = data + begin + (n - 1) * stride;
-            if (n < 4) {
-                quantize(d - data, *d, *(d - stride));
-            } else {
-                quantize(d - data, *d, interp_linear1(*(d - stride3x), *(d - stride)));
+        if (pb == PB_predict_overwrite) {
+            for (size_t i = 1; i + 1 < n; i += 2) {
+                T *d = data + begin + i * stride;
+                quantize(d - data, *d, interp_linear_3d(*(d - stride), 
+                                                        *(d - stride - stride_p1 - stride_p2),
+                                                        *(d - stride - stride_p2),
+                                                        *(d - stride + stride_p1 - stride_p2),
+                                                        *(d - stride - stride_p1),
+                                                        *(d - stride + stride_p1),
+                                                        *(d - stride - stride_p1 + stride_p2),
+                                                        *(d - stride + stride_p2),
+                                                        *(d - stride + stride_p1 + stride_p2),
+                                                        *(d + stride), 
+                                                        *(d + stride - stride_p1 - stride_p2),
+                                                        *(d + stride - stride_p2),
+                                                        *(d + stride + stride_p1 - stride_p2),
+                                                        *(d + stride - stride_p1),
+                                                        *(d + stride + stride_p1),
+                                                        *(d + stride - stride_p1 + stride_p2),
+                                                        *(d + stride + stride_p2),
+                                                        *(d + stride + stride_p1 + stride_p2)));
+            }
+            if (n % 2 == 0) {
+                T *d = data + begin + (n - 1) * stride;
+                if (n < 4) {
+                    quantize(d - data, *d, *(d - stride));
+                } else {
+                    quantize(d - data, *d, interp_linear1_3d(*(d - stride), 
+                                                        *(d - stride - stride_p1 - stride_p2),
+                                                        *(d - stride - stride_p2),
+                                                        *(d - stride + stride_p1 - stride_p2),
+                                                        *(d - stride - stride_p1),
+                                                        *(d - stride + stride_p1),
+                                                        *(d - stride - stride_p1 + stride_p2),
+                                                        *(d - stride + stride_p2),
+                                                        *(d - stride + stride_p1 + stride_p2)
+                                                        ));
+                }
+            }
+        } else {
+            for (size_t i = 1; i + 1 < n; i += 2) {
+                T *d = data + begin + i * stride;
+                recover(d - data, *d, interp_linear_3d(*(d - stride), 
+                                                        *(d - stride - stride_p1 - stride_p2),
+                                                        *(d - stride - stride_p2),
+                                                        *(d - stride + stride_p1 - stride_p2),
+                                                        *(d - stride - stride_p1),
+                                                        *(d - stride + stride_p1),
+                                                        *(d - stride - stride_p1 + stride_p2),
+                                                        *(d - stride + stride_p2),
+                                                        *(d - stride + stride_p1 + stride_p2),
+                                                        *(d + stride), 
+                                                        *(d + stride - stride_p1 - stride_p2),
+                                                        *(d + stride - stride_p2),
+                                                        *(d + stride + stride_p1 - stride_p2),
+                                                        *(d + stride - stride_p1),
+                                                        *(d + stride + stride_p1),
+                                                        *(d + stride - stride_p1 + stride_p2),
+                                                        *(d + stride + stride_p2),
+                                                        *(d + stride + stride_p1 + stride_p2)));
+            }
+            if (n % 2 == 0) {
+                T *d = data + begin + (n - 1) * stride;
+                if (n < 4) {
+                    recover(d - data, *d, *(d - stride));
+                } else {
+                    recover(d - data, *d, interp_linear1_3d(*(d - stride), 
+                                                        *(d - stride - stride_p1 - stride_p2),
+                                                        *(d - stride - stride_p2),
+                                                        *(d - stride + stride_p1 - stride_p2),
+                                                        *(d - stride - stride_p1),
+                                                        *(d - stride + stride_p1),
+                                                        *(d - stride - stride_p1 + stride_p2),
+                                                        *(d - stride + stride_p2),
+                                                        *(d - stride + stride_p1 + stride_p2)
+                                                        ));
+                }
             }
         }
-
         return predict_error;
     }
     double block_interpolation_2d(T *data, size_t begin, size_t end, size_t stride, size_t stride_pendicular, const std::string &interp_func,
@@ -462,9 +526,29 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
             for (size_t j = (begin[dims[1]] ? begin[dims[1]] + stride : 0); j <= end[dims[1]]; j += stride) {
                 size_t begin_offset = i * dimension_offsets[dims[0]] + j * dimension_offsets[dims[1]] +
                                       begin[dims[2]] * dimension_offsets[dims[2]];
-                predict_error += block_interpolation_1d(
-                    data, begin_offset, begin_offset + (end[dims[2]] - begin[dims[2]]) * dimension_offsets[dims[2]],
-                    stride * dimension_offsets[dims[2]], interp_func, pb);
+                if(i == ((begin[dims[0]] ? begin[dims[0]] + stride : 0)) ||
+                    i + stride > end[dims[0]]) {
+                    if(j == ((begin[dims[1]] ? begin[dims[1]] + stride : 0)) ||
+                        j + stride > end[dims[1]]
+                    ) {
+                        predict_error += block_interpolation_1d(
+                            data, begin_offset, begin_offset + (end[dims[2]] - begin[dims[2]]) * dimension_offsets[dims[2]],
+                            stride * dimension_offsets[dims[2]], interp_func, pb);
+                    } else {
+                        predict_error += block_interpolation_2d(
+                            data, begin_offset, begin_offset + (end[dims[2]] - begin[dims[2]]) * dimension_offsets[dims[2]],
+                            stride * dimension_offsets[dims[2]], stride * dimension_offsets[dims[1]], interp_func, pb);
+                    }
+                } else if (j == ((begin[dims[1]] ? begin[dims[1]] + stride : 0)) ||
+                        j + stride > end[dims[1]]) {
+                    predict_error += block_interpolation_2d(
+                            data, begin_offset, begin_offset + (end[dims[2]] - begin[dims[2]]) * dimension_offsets[dims[2]],
+                            stride * dimension_offsets[dims[2]], stride * dimension_offsets[dims[0]], interp_func, pb);
+                } else {
+                    predict_error += block_interpolation_3d(
+                        data, begin_offset, begin_offset + (end[dims[2]] - begin[dims[2]]) * dimension_offsets[dims[2]],
+                        stride * dimension_offsets[dims[2]], stride * dimension_offsets[dims[0]], stride * dimension_offsets[dims[1]], interp_func, pb);
+                }
             }
         }
         return predict_error;
