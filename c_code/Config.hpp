@@ -27,6 +27,9 @@ namespace FHDE{
 
 enum EB{EB_ABS,EB_REL};
 constexpr const char *EB_STR[]={"ABS","REL"};
+
+enum METHOD{METHOD_HDE,METHOD_FHDE};
+constexpr const char *METHOD_STR[]={"HDE","FHDE"};
 // constexpr EB EB_OPTIONS[]={EB_ABS,EB_REL};
 
 // enum ALGO{ ALGO_LORENZO_REG,ALGO_INTERP_LORENZO,ALGO_INTERP,ALGO_NOPRED,ALGO_LOSSLESS };
@@ -125,7 +128,7 @@ class Config{
     //             throw std::invalid_argument("Unknown error bound mode");
     //         }
     //     }
-    //     absErrorBound=cfg.GetReal("GlobalSettings","AbsErrorBound",absErrorBound);
+    //     abs_eb=cfg.GetReal("GlobalSettings","AbsErrorBound",abs_eb);
     //     rel_eb=cfg.GetReal("GlobalSettings","RelErrorBound",rel_eb);
     //     psnrErrorBound=cfg.GetReal("GlobalSettings","PSNRErrorBound",psnrErrorBound);
     //     l2normErrorBound=cfg.GetReal("GlobalSettings","L2NormErrorBound",l2normErrorBound);
@@ -144,7 +147,7 @@ class Config{
     //     }
     //     interpDirection=cfg.GetInteger("AlgoSettings","InterpolationDirection",interpDirection);
     //     blockSize=cfg.GetInteger("AlgoSettings","BlockSize",blockSize);
-    //     quantbinCnt=cfg.GetInteger("AlgoSettings","QuantizationBinTotal",quantbinCnt);
+    //     qb_cnt=cfg.GetInteger("AlgoSettings","QuantizationBinTotal",qb_cnt);
     // }
 
     // size_t save(unsigned char *&c){
@@ -162,7 +165,7 @@ class Config{
 
     //     write(eb_mode,c);
     //     if (eb_mode == EB_ABS){
-    //         write(absErrorBound,c);
+    //         write(abs_eb,c);
     //     } else if (eb_mode == EB_REL){
     //         write(rel_eb,c);
     //     } else if (eb_mode == EB_PSNR){
@@ -170,10 +173,10 @@ class Config{
     //     } else if (eb_mode == EB_L2NORM){
     //         write(l2normErrorBound,c);
     //     } else if (eb_mode == EB_ABS_OR_REL){
-    //         write(absErrorBound,c);
+    //         write(abs_eb,c);
     //         write(rel_eb,c);
     //     } else if (eb_mode == EB_ABS_AND_REL){
-    //         write(absErrorBound,c);
+    //         write(abs_eb,c);
     //         write(rel_eb,c);
     //     }
 
@@ -187,7 +190,7 @@ class Config{
     //     write(interpAlgo,c);
     //     write(interpDirection,c);
 
-    //     write(quantbinCnt,c);
+    //     write(qb_cnt,c);
     //     write(blockSize,c);
     //     write(stride,c);
     //     write(pred_dim,c);
@@ -225,7 +228,7 @@ class Config{
 
     //     read(eb_mode,c);
     //     if (eb_mode == EB_ABS){
-    //         read(absErrorBound,c);
+    //         read(abs_eb,c);
     //     } else if (eb_mode == EB_REL){
     //         read(rel_eb,c);
     //     } else if (eb_mode == EB_PSNR){
@@ -233,10 +236,10 @@ class Config{
     //     } else if (eb_mode == EB_L2NORM){
     //         read(l2normErrorBound,c);
     //     } else if (eb_mode == EB_ABS_OR_REL){
-    //         read(absErrorBound,c);
+    //         read(abs_eb,c);
     //         read(rel_eb,c);
     //     } else if (eb_mode == EB_ABS_AND_REL){
-    //         read(absErrorBound,c);
+    //         read(abs_eb,c);
     //         read(rel_eb,c);
     //     }
 
@@ -254,7 +257,7 @@ class Config{
     //     read(interpAlgo,c);
     //     read(interpDirection,c);
 
-    //     read(quantbinCnt,c);
+    //     read(qb_cnt,c);
     //     read(blockSize,c);
     //     read(stride,c);
     //     read(pred_dim,c);
@@ -281,7 +284,7 @@ class Config{
     //     printf("\nnum=%zu\n",num);
     //     printf("CmprAlgo=%s\n",enum2Str(static_cast<ALGO>(cmprAlgo)));
     //     printf("ErrorBoundMode=%s\n",enum2Str(static_cast<EB>(eb_mode)));
-    //     printf("AbsErrorBound=%f\n",absErrorBound);
+    //     printf("AbsErrorBound=%f\n",abs_eb);
     //     printf("RelErrorBound=%f\n",rel_eb);
     //     printf("PSNRErrorBound=%f\n",psnrErrorBound);
     //     printf("L2NormErrorBound=%f\n",l2normErrorBound);
@@ -295,7 +298,7 @@ class Config{
     //     printf("Encoder=%d\n",encoder);
     //     printf("InterpolationAlgo=%s\n",enum2Str(static_cast<INTERP_ALGO>(interpAlgo)));
     //     printf("InterpolationDirection=%d\n",interpDirection);
-    //     printf("QuantizationBinTotal=%d\n",quantbinCnt);
+    //     printf("QuantizationBinTotal=%d\n",qb_cnt);
     //     printf("BlockSize=%d\n",blockSize);
     //     printf("Stride=%d\n",stride);
     //     printf("PredDim=%d\n",pred_dim);
@@ -314,7 +317,7 @@ class Config{
     size_t num=0;//number of data points
     // uint8_t cmprAlgo=ALGO_INTERP_LORENZO;
     uint8_t eb_mode=EB_ABS;
-    // double absErrorBound=1e-3;
+    double abs_eb=1e-3;
     double rel_eb=0;
     // double psnrErrorBound=0.0;
     // double l2normErrorBound=0.0;
@@ -328,8 +331,10 @@ class Config{
     // uint8_t encoder=1;          // 0-> skip encoder; 1->HuffmanEncoder; 2->ArithmeticEncoder
     // uint8_t interpAlgo=INTERP_ALGO_CUBIC;
     // uint8_t interpDirection=0;
-    // int quantbinCnt=65536;
+    int qb_cnt=65536;
     int blockSize=0;
+    uint8_t method=METHOD_FHDE;
+    float threshold=1;
 };
 
 }  // namespace SZ3

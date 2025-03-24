@@ -183,6 +183,19 @@ int main(int argc,char **argv)
         conf.rel_eb=atof(eb);
         conf.eb_mode=FHDE::EB_REL;
     }
+    if (method!=nullptr)
+        if (strcmp(method,"FHDE")==0)
+        {
+            conf.method=FHDE::METHOD_FHDE;
+            conf.threshold=atof(threshold);
+        }
+        else if (strcmp(method,"HDE")==0)
+            conf.method=FHDE::METHOD_HDE;
+        else
+        {
+            printf("Error: undefined method\n");
+            usage();
+        }
     if (compression)
         compress<float>(in_path,cmp_path,conf);
     // if (decompression)
