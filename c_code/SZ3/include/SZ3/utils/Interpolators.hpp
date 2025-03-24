@@ -7,8 +7,8 @@
 
 namespace SZ3 {
 template <class T>
-inline T interp_linear(T a, T b) {
-    return (a + b) / 2;
+inline T interp_linear(T a, T b, float c1, float c2) {
+    return (a * c1 + b * c2);
 }
 
 template <class T>

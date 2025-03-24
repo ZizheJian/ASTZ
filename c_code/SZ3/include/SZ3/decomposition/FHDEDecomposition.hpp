@@ -126,6 +126,11 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
         write(interpolator_id, c);
         write(direction_sequence_id, c);
 
+        write(coeff_list.size(), c);
+        for(int i = 0; i < coeff_list.size(); i++) {
+            write(coeff_list[i].size(), c);
+            write(coeff_list[i].data(), coeff_list[i].size(), c);
+        }
         quantizer.save(c);
     }
 
@@ -135,6 +140,16 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
         read(interpolator_id, c, remaining_length);
         read(direction_sequence_id, c, remaining_length);
 
+        size_t coeff_size = 0;
+        read(coeff_size, c, remaining_length);
+        coeff_list.resize(coeff_size);
+        for(int i = 0; i < coeff_size; i++) {
+            size_t J = 0;
+            read(J, c, remaining_length);
+            coeff_list[i].resize(J);
+            read(coeff_list[i].data(), J, c, remaining_length);
+            // std::cout << J << std::endl;
+        }
         quantizer.load(c, remaining_length);
     }
 
@@ -182,6 +197,67 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
 
     inline void recover(size_t idx, T &d, T pred) { d = quantizer.recover(pred, quant_inds[quant_index++]); }
     
+    void calc_coeff(T *data, size_t begin, size_t end, size_t stride) {
+        size_t n = (end - begin) / stride + 1;
+        if (n <= 1) {
+            return;
+        }
+        // 用来累加 A^T A 和 A^T b 所需要的元素
+        long double sumA00 = 0.0;  // = \sum (a_i^{(0)})^2
+        long double sumA01 = 0.0;  // = \sum (a_i^{(0)} a_i^{(1)})
+        long double sumA11 = 0.0;  // = \sum (a_i^{(1)})^2
+        long double sumAB0 = 0.0;  // = \sum (a_i^{(0)} b_i)
+        long double sumAB1 = 0.0;  // = \sum (a_i^{(1)} b_i)
+        long double lambda = 0.0001;
+        for (size_t i = 0; i + 2 < n; i += 2) {
+            T a0 = *(data + begin + i * stride);
+            T bVal = *(data + begin + (i + 1) * stride);
+            T a1 = *(data + begin + (i + 2) * stride);
+            sumA00 += a0 * a0;
+            sumA01 += a0 * a1;
+            sumA11 += a1 * a1;
+            sumAB0 += a0 * bVal;
+            sumAB1 += a1 * bVal;
+        }
+        // 构造正则化后的 ATA_reg = (A^T A + lambda I)
+        // 其中 A^T A = [ sumA00   sumA01 ]
+        //              [ sumA01   sumA11 ]
+        // 加上 lambda I = [ lambda  0 ]
+        //                 [ 0       lambda ]
+        // 得到:
+        // ATA_reg = [ sumA00+lambda   sumA01      ]
+        //           [ sumA01          sumA11+lambda]
+        long double a = sumA00 + lambda;
+        long double b = sumA01;
+        long double d = sumA11 + lambda;
+
+        // 构造向量 ATb = [ sumAB0 ]
+        //                [ sumAB1 ]
+        long double v0 = sumAB0;
+        long double v1 = sumAB1;
+
+        // 求行列式
+        long double det = a * d - b * b;
+        if (std::fabs(det) < 1e-20L) {
+            std::cerr << "Error: matrix is singular or nearly singular." << std::endl;
+            return;
+        }
+
+        // 2x2 矩阵的逆
+        // [ a  b ]^-1 = (1/det) [  d  -b ]
+        // [ b  d ]              [ -b  a  ]
+        long double invA =  d / det;    // d/det
+        long double invB = -b / det;    // -b/det
+        long double invD =  a / det;    // a/det
+
+        // x = (ATA_reg)^{-1} * (ATb)
+        long double x0 = invA * v0 + invB * v1;
+        long double x1 = invB * v0 + invD * v1;
+
+        coeff_list.push_back(std::vector<_Float32>{x0, x1});
+    }
+
+
     double block_interpolation_3d(T *data, size_t begin, size_t end, size_t stride, size_t stride_p1, size_t stride_p2, const std::string &interp_func,
                                   const PredictorBehavior pb) {
         // { // Log
@@ -193,8 +269,6 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
         }
         double predict_error = 0;
 
-        size_t stride3x = 3 * stride;
-        size_t stride5x = 5 * stride;
         if (pb == PB_predict_overwrite) {
             for (size_t i = 1; i + 1 < n; i += 2) {
                 T *d = data + begin + i * stride;
@@ -287,8 +361,6 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
         }
         double predict_error = 0;
 
-        size_t stride3x = 3 * stride;
-        size_t stride5x = 5 * stride;
         // 
         if (pb == PB_predict_overwrite) {
             for (size_t i = 1; i + 1 < n; i += 2) {
@@ -335,7 +407,6 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
         }
         return predict_error;
     }
-
     double block_interpolation_1d(T *data, size_t begin, size_t end, size_t stride, const std::string &interp_func,
                                   const PredictorBehavior pb) {
         // { // Log
@@ -346,77 +417,49 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
             return 0;
         }
         double predict_error = 0;
+        calc_coeff(data, begin, end, stride);
+        // coeff_list.push_back(std::vector<_Float32>{0.5,0.5});
 
-        size_t stride3x = 3 * stride;
-        size_t stride5x = 5 * stride;
-        if (interp_func == "linear" || n < 5) {
-            if (pb == PB_predict_overwrite) {
-                for (size_t i = 1; i + 1 < n; i += 2) {
-                    T *d = data + begin + i * stride;
-                    quantize(d - data, *d, interp_linear(*(d - stride), *(d + stride)));
-                }
-                if (n % 2 == 0) {
-                    T *d = data + begin + (n - 1) * stride;
-                    if (n < 4) {
-                        quantize(d - data, *d, *(d - stride));
-                    } else {
-                        quantize(d - data, *d, interp_linear1(*(d - stride3x), *(d - stride)));
-                    }
-                }
-            } else {
-                for (size_t i = 1; i + 1 < n; i += 2) {
-                    T *d = data + begin + i * stride;
-                    recover(d - data, *d, interp_linear(*(d - stride), *(d + stride)));
-                }
-                if (n % 2 == 0) {
-                    T *d = data + begin + (n - 1) * stride;
-                    if (n < 4) {
-                        recover(d - data, *d, *(d - stride));
-                    } else {
-                        recover(d - data, *d, interp_linear1(*(d - stride3x), *(d - stride)));
-                    }
+        
+        if (pb == PB_predict_overwrite) {
+            float x0 = coeff_list.back()[0];
+            float x1 = coeff_list.back()[1];
+            std::cout << x0 << "   " << x1 << std::endl;
+
+            for (size_t i = 1; i + 1 < n; i += 2) {
+                T *d = data + begin + i * stride;
+                quantize(d - data, *d, interp_linear(*(d - stride), *(d + stride), x0, x1));
+            }
+            if (n % 2 == 0) {
+                T *d = data + begin + (n - 1) * stride;
+                if (n < 4) {
+                    quantize(d - data, *d, *(d - stride));
+                } else {
+                    quantize(d - data, *d, interp_linear1(*(d - stride * 3), *(d - stride)));
                 }
             }
         } else {
-            if (pb == PB_predict_overwrite) {
-                T *d;
-                size_t i;
-                for (i = 3; i + 3 < n; i += 2) {
-                    d = data + begin + i * stride;
-                    quantize(d - data, *d,
-                             interp_cubic(*(d - stride3x), *(d - stride), *(d + stride), *(d + stride3x)));
-                }
-                d = data + begin + stride;
-                quantize(d - data, *d, interp_quad_1(*(d - stride), *(d + stride), *(d + stride3x)));
-
-                d = data + begin + i * stride;
-                quantize(d - data, *d, interp_quad_2(*(d - stride3x), *(d - stride), *(d + stride)));
-                if (n % 2 == 0) {
-                    d = data + begin + (n - 1) * stride;
-                    quantize(d - data, *d, interp_quad_3(*(d - stride5x), *(d - stride3x), *(d - stride)));
-                }
-
-            } else {
-                T *d;
-
-                size_t i;
-                for (i = 3; i + 3 < n; i += 2) {
-                    d = data + begin + i * stride;
-                    recover(d - data, *d, interp_cubic(*(d - stride3x), *(d - stride), *(d + stride), *(d + stride3x)));
-                }
-                d = data + begin + stride;
-
-                recover(d - data, *d, interp_quad_1(*(d - stride), *(d + stride), *(d + stride3x)));
-
-                d = data + begin + i * stride;
-                recover(d - data, *d, interp_quad_2(*(d - stride3x), *(d - stride), *(d + stride)));
-
-                if (n % 2 == 0) {
-                    d = data + begin + (n - 1) * stride;
-                    recover(d - data, *d, interp_quad_3(*(d - stride5x), *(d - stride3x), *(d - stride)));
+            float x0 = 0.5;
+            float x1 = 0.5;
+            if(coeff_idx < coeff_list.size()) {
+                x0 = coeff_list[coeff_idx][0];
+                x1 = coeff_list[coeff_idx][1];
+            }
+            coeff_idx++;
+            for (size_t i = 1; i + 1 < n; i += 2) {
+                T *d = data + begin + i * stride;
+                recover(d - data, *d, interp_linear(*(d - stride), *(d + stride), x0, x1));
+            }
+            if (n % 2 == 0) {
+                T *d = data + begin + (n - 1) * stride;
+                if (n < 4) {
+                    recover(d - data, *d, *(d - stride));
+                } else {
+                    recover(d - data, *d, interp_linear1(*(d - stride * 3), *(d - stride)));
                 }
             }
         }
+        
 
         return predict_error;
     }
@@ -518,6 +561,9 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                     predict_error += block_interpolation_2d(
                         data, begin_offset, begin_offset + (end[dims[1]] - begin[dims[1]]) * dimension_offsets[dims[1]],
                         stride * dimension_offsets[dims[1]], stride * dimension_offsets[dims[0]], interp_func, pb);
+                    // predict_error += block_interpolation_1d(
+                    //     data, begin_offset, begin_offset + (end[dims[1]] - begin[dims[1]]) * dimension_offsets[dims[1]],
+                    //     stride * dimension_offsets[dims[1]], interp_func, pb);
                 }
 
             }
@@ -549,6 +595,9 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                         data, begin_offset, begin_offset + (end[dims[2]] - begin[dims[2]]) * dimension_offsets[dims[2]],
                         stride * dimension_offsets[dims[2]], stride * dimension_offsets[dims[0]], stride * dimension_offsets[dims[1]], interp_func, pb);
                 }
+                // predict_error += block_interpolation_1d(
+                //             data, begin_offset, begin_offset + (end[dims[2]] - begin[dims[2]]) * dimension_offsets[dims[2]],
+                //             stride * dimension_offsets[dims[2]], interp_func, pb);
             }
         }
         return predict_error;
@@ -629,6 +678,10 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
     std::array<size_t, N> dimension_offsets;
     std::vector<std::array<int, N>> dimension_sequences;
     int direction_sequence_id;
+
+    // coeff
+    std::vector<std::vector<_Float32>> coeff_list;
+    size_t coeff_idx = 0;
 };
 
 template <class T, uint N, class Quantizer>
