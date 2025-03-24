@@ -18,12 +18,14 @@ inline T interp_linear1(T a, T b) {
 
 template <class T>
 inline T interp_linear_2d(T a, T a_left, T a_right, T b, T b_left, T b_right) {
-    return (a + a_left + a_right + b + b_left + b_right) / 6;
+    // return (a + a_left + a_right + b + b_left + b_right) / 6;
+    return (a + b) / 6;
 }
 
 template <class T>
 inline T interp_linear1_2d(T a, T a_left, T a_right) {
-    return (a + a_left + a_right) / 3;
+    // return (a + a_left + a_right) / 3;
+    return a;
 }
 
 template <class T>

@@ -158,6 +158,54 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
    private:
     enum PredictorBehavior { PB_predict_overwrite, PB_predict, PB_recover };
 
+    std::array<int, 3> calc_stride(std::array<int, 4>& dim) {
+        std::array<int, 3> strides;
+        for(int i = 0; i < 3; i++) {
+            if(dim[i] == 1){
+                strides[i] = 0;
+                continue;
+            }
+            for(int shift = 0; shift < 30; shift++) {
+                int stride = 1 << shift;
+                bool cond1 = (dim[i] - 1) * stride <= global_dimensions[i] - 1;
+                bool cond2 = dim[i] * stride > global_dimensions[i] - 1;
+                if(cond1 && cond2) {
+                    strides[i] = stride;
+                    break;
+                }
+            }
+        }
+        return strides;
+    }
+
+    void level_dimension_loader() {
+        std::ifstream infile("Uf48.bin.dat.txt"); 
+        std::string line;
+
+        while (std::getline(infile, line)) {
+            std::istringstream iss(line);
+            std::array<int, 4> values;
+            if (iss >> values[0] >> values[1] >> values[2] >> values[3]) {
+                level_dimensions.push_back(values);
+            } else {
+                std::cerr << "格式错误: " << line << std::endl;
+            }
+        }
+
+        for (auto arr : level_dimensions) {
+            for (int val : arr) {
+                std::cout << val << " ";
+            }
+            std::cout << '\n';
+            std::array<int, 3> strides = calc_stride(arr);
+            std::cout << "stride: ";
+            for (int val : strides) {
+                std::cout << val << " ";
+            }
+            std::cout <<"\n\n";
+        }
+    }
+    
     void init() {
         quant_index = 0;
         assert(blocksize % 2 == 0 && "Interpolation block size should be even numbers");
@@ -183,6 +231,8 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
         do {
             dimension_sequences.push_back(sequence);
         } while (std::next_permutation(sequence.begin(), sequence.end()));
+
+        level_dimension_loader();
     }
 
     inline void quantize(size_t idx, T &d, T pred) {
@@ -254,7 +304,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
         long double x0 = invA * v0 + invB * v1;
         long double x1 = invB * v0 + invD * v1;
 
-        coeff_list.push_back(std::vector<_Float32>{x0, x1});
+        coeff_list.push_back(std::vector<_Float32>{static_cast<_Float32>(x0), static_cast<_Float32>(x1)});
     }
 
 
@@ -422,13 +472,13 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
 
         
         if (pb == PB_predict_overwrite) {
-            float x0 = coeff_list.back()[0];
-            float x1 = coeff_list.back()[1];
-            std::cout << x0 << "   " << x1 << std::endl;
+            float x0 = static_cast<float>(coeff_list.back()[0]);
+            float x1 = static_cast<float>(coeff_list.back()[1]);
+            // std::cout << x0 << "   " << x1 << std::endl;
 
             for (size_t i = 1; i + 1 < n; i += 2) {
                 T *d = data + begin + i * stride;
-                quantize(d - data, *d, interp_linear(*(d - stride), *(d + stride), x0, x1));
+                quantize(d - data, *d, interp_linear(*(d - stride), *(d + stride), 0.5, 0.5));
             }
             if (n % 2 == 0) {
                 T *d = data + begin + (n - 1) * stride;
@@ -448,7 +498,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
             coeff_idx++;
             for (size_t i = 1; i + 1 < n; i += 2) {
                 T *d = data + begin + i * stride;
-                recover(d - data, *d, interp_linear(*(d - stride), *(d + stride), x0, x1));
+                recover(d - data, *d, interp_linear(*(d - stride), *(d + stride), 0.5, 0.5));
             }
             if (n % 2 == 0) {
                 T *d = data + begin + (n - 1) * stride;
@@ -682,6 +732,8 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
     // coeff
     std::vector<std::vector<_Float32>> coeff_list;
     size_t coeff_idx = 0;
+    std::vector<std::array<int, 4>> level_dimensions;
+
 };
 
 template <class T, uint N, class Quantizer>
