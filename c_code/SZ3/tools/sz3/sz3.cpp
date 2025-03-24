@@ -174,7 +174,7 @@ void decompress(char *inPath, char *cmpPath, char *decPath, SZ3::Config conf, in
     } else {
         SZ3::writeTextFile<T>(outputFilePath, decData, conf.num);
     }
-    if (printCmpResults) {
+    if (true) {
         // compute the distortion / compression errors...
         size_t totalNbEle;
         auto ori_data = SZ3::readfile<T>(inPath, totalNbEle);

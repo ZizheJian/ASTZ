@@ -65,6 +65,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
     std::vector<int> compress(const Config &conf, T *data) override {
         std::copy_n(conf.dims.begin(), N, global_dimensions.begin());
         blocksize = 32;
+        // blocksize = 65536;
         interpolator_id = conf.interpAlgo;
         direction_sequence_id = conf.interpDirection;
 
@@ -87,6 +88,9 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
             } else {
                 quantizer.set_eb(eb);
             }
+            { // Log
+                std::cout << level << std::endl;
+            }
             size_t stride = 1U << (level - 1);
 
             auto inter_block_range = std::make_shared<multi_dimensional_range<T, N>>(
@@ -106,6 +110,9 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
 
                 block_interpolation(data, block.get_global_index(), end_idx, PB_predict_overwrite,
                                     interpolators[interpolator_id], direction_sequence_id, stride);
+                { // Log
+                    std::cout << "quant_index: " << quant_index << std::endl;
+                }
             }
         }
 
@@ -164,13 +171,112 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
     }
 
     inline void quantize(size_t idx, T &d, T pred) {
+        {   // debug
+            if(quant_index < 100) {
+                std::cout << "(x, y, z) = (" << idx/(96*96) << ", " << (idx % (96*96))/96 << ", " << (idx % 96) << ")" << std::endl;
+            }
+        }
+        
         quant_inds[quant_index++] = (quantizer.quantize_and_overwrite(d, pred));
     }
 
     inline void recover(size_t idx, T &d, T pred) { d = quantizer.recover(pred, quant_inds[quant_index++]); }
+    
+    double block_interpolation_3d(T *data, size_t begin, size_t end, size_t stride, const std::string &interp_func,
+                                  const PredictorBehavior pb) {
+        // { // Log
+        //     std::cout << "[Log] begin: " << begin << ", end: " << end << ", stride: " << stride << std::endl;
+        // }
+        size_t n = (end - begin) / stride + 1;
+        if (n <= 1) {
+            return 0;
+        }
+        double predict_error = 0;
+
+        size_t stride3x = 3 * stride;
+        size_t stride5x = 5 * stride;
+        assert(pb == PB_predict_overwrite); 
+        // 
+        for (size_t i = 1; i + 1 < n; i += 2) {
+            T *d = data + begin + i * stride;
+            quantize(d - data, *d, interp_linear(*(d - stride), *(d + stride)));
+        }
+        if (n % 2 == 0) {
+            T *d = data + begin + (n - 1) * stride;
+            if (n < 4) {
+                quantize(d - data, *d, *(d - stride));
+            } else {
+                quantize(d - data, *d, interp_linear1(*(d - stride3x), *(d - stride)));
+            }
+        }
+
+        return predict_error;
+    }
+    double block_interpolation_2d(T *data, size_t begin, size_t end, size_t stride, size_t stride_pendicular, const std::string &interp_func,
+                                  const PredictorBehavior pb) {
+        // { // Log
+        //     std::cout << "[Log] begin: " << begin << ", end: " << end << ", stride: " << stride << std::endl;
+        // }
+        size_t n = (end - begin) / stride + 1;
+        if (n <= 1) {
+            return 0;
+        }
+        double predict_error = 0;
+
+        size_t stride3x = 3 * stride;
+        size_t stride5x = 5 * stride;
+        // 
+        if (pb == PB_predict_overwrite) {
+            for (size_t i = 1; i + 1 < n; i += 2) {
+                T *d = data + begin + i * stride;
+                quantize(d - data, *d, interp_linear_2d(*(d - stride), 
+                                                        *(d - stride - stride_pendicular),
+                                                        *(d - stride + stride_pendicular),
+                                                        *(d + stride),
+                                                        *(d + stride - stride_pendicular),
+                                                        *(d + stride + stride_pendicular)
+                                                        ));
+            }
+            if (n % 2 == 0) {
+                T *d = data + begin + (n - 1) * stride;
+                if (n < 4) {
+                    quantize(d - data, *d, *(d - stride));
+                } else {
+                    quantize(d - data, *d, interp_linear1_2d(*(d - stride), 
+                                                        *(d - stride - stride_pendicular),
+                                                        *(d - stride + stride_pendicular)));
+                }
+            }
+        } else {
+            for (size_t i = 1; i + 1 < n; i += 2) {
+                T *d = data + begin + i * stride;
+                recover(d - data, *d, interp_linear_2d(*(d - stride), 
+                                                        *(d - stride - stride_pendicular),
+                                                        *(d - stride + stride_pendicular),
+                                                        *(d + stride),
+                                                        *(d + stride - stride_pendicular),
+                                                        *(d + stride + stride_pendicular)
+                                                        ));
+            }
+            if (n % 2 == 0) {
+                T *d = data + begin + (n - 1) * stride;
+                if (n < 4) {
+                    recover(d - data, *d, *(d - stride));
+                } else {
+                    recover(d - data, *d, interp_linear1_2d(*(d - stride), 
+                                                        *(d - stride - stride_pendicular),
+                                                        *(d - stride + stride_pendicular)));
+                }
+            }
+        }
+        return predict_error;
+    }
 
     double block_interpolation_1d(T *data, size_t begin, size_t end, size_t stride, const std::string &interp_func,
                                   const PredictorBehavior pb) {
+        // { // Log
+        //     std::cout << "[Log] begin: " << begin << ", end: " << end << ", stride: " << stride << std::endl;
+        // }
         size_t n = (end - begin) / stride + 1;
         if (n <= 1) {
             return 0;
@@ -293,6 +399,37 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
         double predict_error = 0;
         size_t stride2x = stride * 2;
         const std::array<int, N> dims = dimension_sequences[direction];
+        {   // print dims, begin, end
+            std::cout << "dimension_offsets = {";
+            for (size_t i = 0; i < dimension_offsets.size(); ++i) {
+                std::cout << dimension_offsets[i];
+                if (i < dimension_offsets.size() - 1) {
+                    std::cout << ", ";
+                }
+            }
+            std::cout << "}" << std::endl;
+
+            std::cout << "begin = {";
+            for (size_t i = 0; i < begin.size(); ++i) {
+                std::cout << begin[i];
+                if (i < begin.size() - 1) {
+                    std::cout << ", ";
+                }
+            }
+            std::cout << "}" << std::endl;
+            
+            std::cout << "end = {";
+            for (size_t i = 0; i < end.size(); ++i) {
+                std::cout << end[i];
+                if (i < end.size() - 1) {
+                    std::cout << ", ";
+                }
+            }
+            std::cout << "}" << std::endl;
+
+            std::cout << "stride = " << stride << std::endl;
+
+        }
         for (size_t j = (begin[dims[1]] ? begin[dims[1]] + stride2x : 0); j <= end[dims[1]]; j += stride2x) {
             for (size_t k = (begin[dims[2]] ? begin[dims[2]] + stride2x : 0); k <= end[dims[2]]; k += stride2x) {
                 size_t begin_offset = begin[dims[0]] * dimension_offsets[dims[0]] + j * dimension_offsets[dims[1]] +
@@ -306,9 +443,19 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
             for (size_t k = (begin[dims[2]] ? begin[dims[2]] + stride2x : 0); k <= end[dims[2]]; k += stride2x) {
                 size_t begin_offset = i * dimension_offsets[dims[0]] + begin[dims[1]] * dimension_offsets[dims[1]] +
                                       k * dimension_offsets[dims[2]];
-                predict_error += block_interpolation_1d(
-                    data, begin_offset, begin_offset + (end[dims[1]] - begin[dims[1]]) * dimension_offsets[dims[1]],
-                    stride * dimension_offsets[dims[1]], interp_func, pb);
+                if(i == ((begin[dims[0]] ? begin[dims[0]] + stride : 0)) ||
+                    i + stride > end[dims[0]] ||
+                    k == ((begin[dims[2]] ? begin[dims[2]] + stride2x : 0)) ||
+                    k + stride2x > end[dims[2]]) {
+                    predict_error += block_interpolation_1d(
+                        data, begin_offset, begin_offset + (end[dims[1]] - begin[dims[1]]) * dimension_offsets[dims[1]],
+                        stride * dimension_offsets[dims[1]], interp_func, pb);
+                } else {
+                    predict_error += block_interpolation_2d(
+                        data, begin_offset, begin_offset + (end[dims[1]] - begin[dims[1]]) * dimension_offsets[dims[1]],
+                        stride * dimension_offsets[dims[1]], stride * dimension_offsets[dims[0]], interp_func, pb);
+                }
+
             }
         }
         for (size_t i = (begin[dims[0]] ? begin[dims[0]] + stride : 0); i <= end[dims[0]]; i += stride) {
