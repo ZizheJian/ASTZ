@@ -59,12 +59,14 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
             int dir2 = 0;
             bool foundone = false;
             bool foundtwo = false;
+            bool found3 = false;
             { // predict behavier
                 
                 for(int i = 0; i < 3; i++) {
                     if(level_dimensions[level][i] > last_dim[i]){
-                        
-                        if(foundone) {
+                        if(foundtwo) {
+                            found3 = true;
+                        } else if(foundone) {
                             dir2 = i;
                             foundtwo = true;
                         } else {
@@ -77,7 +79,9 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                 switch (S)
                 {
                 case state::Z:
-                    if(foundtwo) {
+                    if(found3) {
+                        S = state::A;
+                    } else if(foundtwo) {
                         S = state::B;
                     } else if(foundone) {
                         S = state::C;
@@ -86,14 +90,20 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                     }
                     break;
                 case state::C:
-                    if(foundone) {
+                    if(found3) {
+                        std::cout << "waa" << std::endl;
+                    } else if(foundtwo) {
+                        S = state::A;
+                    } else if(foundone) {
                         S = state::B;
                     } else {
                         std::cout << "waa" << std::endl;
                     }
                     break;
                 case state::E:
-                    if(foundtwo) {
+                    if(found3) {
+                        std::cout << "waa" << std::endl;
+                    } else if(foundtwo) {
                         std::cout << "waa" << std::endl;
                     } else if(foundone) {
                         S = state::D;
@@ -102,9 +112,19 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                     }
                     break;
                 case state::D:
-                    if(foundtwo) {
+                    if(found3) {
+                        std::cout << "waa" << std::endl;
+                    } else if(foundtwo) {
                         std::cout << "waa" << std::endl;
                     } else if(foundone) {
+                        std::cout << "waa" << std::endl;
+                    } else {
+                        // std::cout << "waa" << std::endl;
+                    }
+                    break;
+                case state::A:
+                    std::cout << "in state A" << std::endl;
+                    if(foundone) {
                         std::cout << "waa" << std::endl;
                     } else {
                         // std::cout << "waa" << std::endl;
@@ -136,8 +156,10 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                 // } else {
                 //     interpolation(dec_data, begins[i], ends[i], PB_recover, interpolators[interpolator_id], 111, strides, last_dir);
                 // }
-                if(S == state::B) {
-                    printf("f11\n");
+                if(S == state::A) {
+                    dir = 3 - (level_dimensions[level][3] % 10);
+                    interpolation(dec_data, begins[i], ends[i], PB_recover, interpolators[interpolator_id], 121, strides, dir);
+                } else if(S == state::B) {
                     interpolation(dec_data, begins[i], ends[i], PB_recover, interpolators[interpolator_id], 221, strides, dir);
                 } else if (S == state::C) {
                     // interpolation(data, begins[i], ends[i], PB_predict, interpolators[interpolator_id], 411, strides, dir);
@@ -150,8 +172,10 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                     params = {0.5, 0.5};
                     interpolation(dec_data, begins[i], ends[i], PB_recover, interpolators[interpolator_id], 411, strides, dir);
                 } else if(S == state::E) {
-                    interpolation(dec_data, begins[i], ends[i], PB_recover, interpolators[interpolator_id], 111, strides, last_dir);
+                    interpolation(dec_data, begins[i], ends[i], PB_recover, interpolators[interpolator_id], 231, strides, last_dir);
                 } else if(S == state::D) {
+                    dir = 3 - (level_dimensions[level][3] % 10);
+                    std::cout << "from D: " << "dir = " << dir << std::endl;
                     if(level_dimensions[level][3] > 420) {
                         interpolation(dec_data, begins[i], ends[i], PB_recover, interpolators[interpolator_id], 421, strides, dir);
                     } else {
@@ -182,7 +206,9 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                     else S = state::E;
                     std::cout << "transfering D to E" << std::endl;
                     break;
-                
+                case state::A:
+                    S = state::D;
+                    break;
                 default:
                     break;
                 }
@@ -258,12 +284,14 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
             int dir2 = 0;
             bool foundone = false;
             bool foundtwo = false;
+            bool found3 = false;
             { // predict behavier
                 
                 for(int i = 0; i < 3; i++) {
                     if(level_dimensions[level][i] > last_dim[i]){
-                        
-                        if(foundone) {
+                        if(foundtwo) {
+                            found3 = true;
+                        } else if(foundone) {
                             dir2 = i;
                             foundtwo = true;
                         } else {
@@ -276,7 +304,11 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                 switch (S)
                 {
                 case state::Z:
-                    if(foundtwo) {
+                    if(found3) {
+                        std::cout << "in state A0" << std::endl;
+                        
+                        S = state::A;
+                    } else if(foundtwo) {
                         S = state::B;
                     } else if(foundone) {
                         S = state::C;
@@ -285,14 +317,20 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                     }
                     break;
                 case state::C:
-                    if(foundone) {
+                    if(found3) {
+                        std::cout << "waa" << std::endl;
+                    } else if(foundtwo) {
+                        S = state::A;
+                    } else if(foundone) {
                         S = state::B;
                     } else {
                         std::cout << "waa" << std::endl;
                     }
                     break;
                 case state::E:
-                    if(foundtwo) {
+                    if(found3) {
+                        std::cout << "waa" << std::endl;
+                    } else if(foundtwo) {
                         std::cout << "waa" << std::endl;
                     } else if(foundone) {
                         S = state::D;
@@ -301,9 +339,20 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                     }
                     break;
                 case state::D:
-                    if(foundtwo) {
+                    if(found3) {
+                        std::cout << "waa" << std::endl;
+                    } else if(foundtwo) {
                         std::cout << "waa" << std::endl;
                     } else if(foundone) {
+                        std::cout << "waa" << std::endl;
+                    } else {
+                        // std::cout << "waa" << std::endl;
+                    }
+                    break;
+                case state::A:
+                    std::cout << "in state A" << std::endl;
+
+                    if(foundone) {
                         std::cout << "waa" << std::endl;
                     } else {
                         // std::cout << "waa" << std::endl;
@@ -314,6 +363,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                 }
                 last_dim = level_dimensions[level];
             }
+            
             std::vector<std::array<int, 3>> begins, ends;
             std::cout << level_dimensions[level][0] << ' ' << level_dimensions[level][1] << ' ' << level_dimensions[level][2] << std::endl;
             block_divider(level_dimensions[level], begins, ends);
@@ -321,8 +371,10 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
             if(foundtwo) dir = 3 - dir - dir2;
             for(int i = 0; i < begins.size(); i++) {
                 // std::cout << "block" << i << ": " << begins[i][0] << ' ' << begins[i][1] << ' ' << begins[i][2] << " to " << ends[i][0] << ' ' << ends[i][1] << ' ' << ends[i][2] << std::endl;
-                if(S == state::B) {
-                    printf("f11\n");
+                if(S == state::A) {
+                    dir = 3 - (level_dimensions[level][3] % 10);
+                    interpolation(data, begins[i], ends[i], PB_predict_overwrite, interpolators[interpolator_id], 121, strides, dir);
+                } else if(S == state::B) {
                     interpolation(data, begins[i], ends[i], PB_predict_overwrite, interpolators[interpolator_id], 221, strides, dir);
                 } else if (S == state::C) {
                     // interpolation(data, begins[i], ends[i], PB_predict, interpolators[interpolator_id], 411, strides, dir);
@@ -335,8 +387,10 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                     dir = foundone ? dir : last_dir;
                     interpolation(data, begins[i], ends[i], PB_predict_overwrite, interpolators[interpolator_id], 411, strides, dir);
                 } else if(S == state::E) {
-                    interpolation(data, begins[i], ends[i], PB_predict_overwrite, interpolators[interpolator_id], 111, strides, last_dir);
+                    interpolation(data, begins[i], ends[i], PB_predict_overwrite, interpolators[interpolator_id], 231, strides, last_dir);
                 } else if(S == state::D) {
+                    dir = 3 - (level_dimensions[level][3] % 10);
+                    std::cout << "from D: " << "dir = " << dir << std::endl;
                     if(level_dimensions[level][3] > 420) {
                         interpolation(data, begins[i], ends[i], PB_predict_overwrite, interpolators[interpolator_id], 421, strides, dir);
                     } else {
@@ -368,7 +422,9 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                     else S = state::E;
                     std::cout << "transfering D to E" << std::endl;
                     break;
-                
+                case state::A:
+                    S = state::D;
+                    break;
                 default:
                     break;
                 }
@@ -1092,6 +1148,14 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
         return predict_error;
     }
 
+    double interpolation_12x(T *data, std::array<int, 3> begin_real, std::array<int, 3> end_real, std::array<int, 3> strides, int dir, const std::string &interp_func,
+                                  const PredictorBehavior pb) {
+        std::cout << "12x: " << "br = " << begin_real[dir] << " er = " << end_real[dir] << " stride = " << strides[dir] << std::endl;
+        // begin_real[dir] = begin_real[dir]/2;
+        // end_real[dir] = end_real[dir]/2;
+        strides[dir] = strides[dir] * 2;
+        return interpolation_22x(data, begin_real, end_real, strides, dir, interp_func, pb);
+    }
     double interpolation(T *data, std::array<int, 3> begin,
                         std::array<int, 3> end,
                         const PredictorBehavior pb,
@@ -1120,11 +1184,13 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
             return interpolation_41x(data, begin_real, end_real, strides,dir, interp_func, pb);
         } else if(action > 250) {
             return interpolation_25x(data, begin_real, end_real, strides,dir, interp_func, pb);
+        } else if(action > 230) {
+            return interpolation_23x(data, begin_real, end_real, strides,dir, interp_func, pb);
         } else if(action > 200) {
             return interpolation_22x(data, begin_real, end_real, strides,dir, interp_func, pb);
         } else {
+            return interpolation_12x(data, begin_real, end_real, strides,dir, interp_func, pb);
             // std::cout << "f22\n" << std::endl;
-            return interpolation_23x(data, begin_real, end_real, strides,dir, interp_func, pb);
         }
     }
 
