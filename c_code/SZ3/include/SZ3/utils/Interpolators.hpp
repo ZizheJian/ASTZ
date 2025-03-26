@@ -5,6 +5,16 @@
 #ifndef SZ_INTERPOLATORS_HPP
 #define SZ_INTERPOLATORS_HPP
 
+#include "SZ3/def.hpp"
+// #include "SZ3/decomposition/FHDEDecomposition.hpp"
+#include "SZ3/quantizer/Quantizer.hpp"
+#include "SZ3/utils/Config.hpp"
+#include "SZ3/utils/FileUtil.hpp"
+#include "SZ3/utils/Iterator.hpp"
+#include "SZ3/utils/MemoryUtil.hpp"
+#include "SZ3/utils/Timer.hpp"
+#include <stdlib.h>
+
 namespace SZ3 {
 template <class T>
 inline T interp_linear(T a, T b, float c1, float c2) {
@@ -126,5 +136,8 @@ inline T interp_pchip(T a, T b, T c, T d) {
     }
     return pchip;
 }
+
+
+
 }  // namespace SZ3
 #endif  // SZ_INTERPOLATORS_HPP

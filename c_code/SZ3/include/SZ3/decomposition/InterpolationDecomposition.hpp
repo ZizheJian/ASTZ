@@ -134,7 +134,7 @@ class InterpolationDecomposition : public concepts::DecompositionInterface<T, in
     std::pair<int, int> get_out_range() override { return quantizer.get_out_range(); }
 
    private:
-    enum PredictorBehavior { PB_predict_overwrite, PB_predict, PB_recover };
+    
 
     void init() {
         quant_index = 0;

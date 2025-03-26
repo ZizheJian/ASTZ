@@ -135,6 +135,7 @@ class LinearQuantizer : public concepts::QuantizerInterface<T, int> {
         this->radius = *reinterpret_cast<const int *>(c);
         c += sizeof(int);
         size_t unpred_size = *reinterpret_cast<const size_t *>(c);
+        std::cout << "[quant] unpred_size = " << unpred_size << std::endl;
         c += sizeof(size_t);
         this->unpred = std::vector<T>(reinterpret_cast<const T *>(c), reinterpret_cast<const T *>(c) + unpred_size);
         c += unpred_size * sizeof(T);
