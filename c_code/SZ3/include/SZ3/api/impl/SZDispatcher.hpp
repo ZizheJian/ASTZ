@@ -44,27 +44,27 @@ size_t SZ_compress_dispatcher(Config &conf, const T *data, uchar *cmpData, size_
         }
     }
 
-    // do lossless only compression if 1) cmpr algorithm is lossless or 2) compressed buffer not large enough for lossy
-    if (conf.cmprAlgo == ALGO_LOSSLESS || !isCmpCapSufficient) {
-        conf.cmprAlgo = ALGO_LOSSLESS;
-        auto zstd = Lossless_zstd();
-        return zstd.compress(reinterpret_cast<const uchar *>(data), conf.num * sizeof(T), cmpData, cmpCap);
-    }
+    // // do lossless only compression if 1) cmpr algorithm is lossless or 2) compressed buffer not large enough for lossy
+    // if (conf.cmprAlgo == ALGO_LOSSLESS || !isCmpCapSufficient) {
+    //     conf.cmprAlgo = ALGO_LOSSLESS;
+    //     auto zstd = Lossless_zstd();
+    //     return zstd.compress(reinterpret_cast<const uchar *>(data), conf.num * sizeof(T), cmpData, cmpCap);
+    // }
     
-    // if lossy compression ratio < 3, test if lossless only mode has a better ratio than lossy
-    if (conf.num * sizeof(T) / 1.0 / cmpSize < 3) {
-        auto zstd = Lossless_zstd();
-        auto zstdCmpCap = ZSTD_compressBound(conf.num * sizeof(T));
-        auto zstdCmpData = static_cast<uchar *>(malloc(zstdCmpCap));
-        size_t zstdCmpSize =
-            zstd.compress(reinterpret_cast<const uchar *>(data), conf.num * sizeof(T), zstdCmpData, zstdCmpCap);
-        if (zstdCmpSize < cmpSize && zstdCmpSize <= cmpCap) {
-            conf.cmprAlgo = ALGO_LOSSLESS;
-            memcpy(cmpData, zstdCmpData, zstdCmpSize);
-            cmpSize = zstdCmpSize;
-        }
-        free(zstdCmpData);
-    }
+    // // if lossy compression ratio < 3, test if lossless only mode has a better ratio than lossy
+    // if (conf.num * sizeof(T) / 1.0 / cmpSize < 3) {
+    //     auto zstd = Lossless_zstd();
+    //     auto zstdCmpCap = ZSTD_compressBound(conf.num * sizeof(T));
+    //     auto zstdCmpData = static_cast<uchar *>(malloc(zstdCmpCap));
+    //     size_t zstdCmpSize =
+    //         zstd.compress(reinterpret_cast<const uchar *>(data), conf.num * sizeof(T), zstdCmpData, zstdCmpCap);
+    //     if (zstdCmpSize < cmpSize && zstdCmpSize <= cmpCap) {
+    //         conf.cmprAlgo = ALGO_LOSSLESS;
+    //         memcpy(cmpData, zstdCmpData, zstdCmpSize);
+    //         cmpSize = zstdCmpSize;
+    //     }
+    //     free(zstdCmpData);
+    // }
     return cmpSize;
 }
 
