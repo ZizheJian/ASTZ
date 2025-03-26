@@ -137,6 +137,16 @@ inline T interp_pchip(T a, T b, T c, T d) {
     return pchip;
 }
 
+// template <class T>
+// inline T inner_prod(std::vector<T> v, std::vector<_Float32> a) {
+//     for()
+//     return (a * c1 + b * c2);
+// }
+template <class T>
+inline T interp_linear_4(T a1, T a2, T a3, T a4, float w1, float w2, float w3, float w4) {
+    return a1 * w1 + a2 * w2 + a3 * w3 + a4 * w4;
+}
+
 
 
 }  // namespace SZ3
