@@ -173,7 +173,8 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                 //     interpolation(dec_data, begins[i], ends[i], PB_recover, interpolators[interpolator_id], 111, strides, last_dir);
                 // }
                 if(S == state::A) {
-                    dir = 3 - (level_dimensions[level][3] % 10);
+                    // dir = 3 - (level_dimensions[level][3] % 10);
+                    dir = (level_dimensions[level][3] % 10) - 1;
                     interpolation(dec_data, begins[i], ends[i], PB_recover, interpolators[interpolator_id], level_dimensions[level][3], strides, dir);
                 } else if(S == state::B) {
                     interpolation(dec_data, begins[i], ends[i], PB_recover, interpolators[interpolator_id], 221, strides, dir);
@@ -192,7 +193,9 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                     coeff_idx++;
 
                 } else if(S == state::E) {
-                    interpolation(dec_data, begins[i], ends[i], PB_recover, interpolators[interpolator_id], 231, strides, last_dir);
+                    dir = (level_dimensions[level][3] % 10) - 1;
+                    // interpolation(dec_data, begins[i], ends[i], PB_recover, interpolators[interpolator_id], 231, strides, last_dir);
+                    interpolation(dec_data, begins[i], ends[i], PB_recover, interpolators[interpolator_id], 231, strides, dir);
                 } else if(S == state::D) {
                     dir = 3 - (level_dimensions[level][3] % 10);
                     std::cout << "from D: " << "dir = " << dir << std::endl;
@@ -209,6 +212,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                     std::cout << "(decmp) from F: " << "dir = " << dir << std::endl;
                     interpolation(dec_data, begins[i], ends[i], PB_recover, interpolators[interpolator_id], 431, strides, dir);
                 } else if(S == state::G) {
+                    // dir = (level_dimensions[level][3] % 10) - 1;
                     dir = 3 - (level_dimensions[level][3] % 10);
                     std::cout << "from G: " << "dir = " << dir << std::endl;
                     interpolation(dec_data, begins[i], ends[i], PB_recover, interpolators[interpolator_id], level_dimensions[level][3], strides, dir);
@@ -425,7 +429,8 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
             for(int i = 0; i < begins.size(); i++) {
                 // std::cout << "block" << i << ": " << begins[i][0] << ' ' << begins[i][1] << ' ' << begins[i][2] << " to " << ends[i][0] << ' ' << ends[i][1] << ' ' << ends[i][2] << std::endl;
                 if(S == state::A) {
-                    dir = 3 - (level_dimensions[level][3] % 10);
+                    dir = (level_dimensions[level][3] % 10) - 1;
+                    // dir = 3 - (level_dimensions[level][3] % 10);
                     interpolation(data, begins[i], ends[i], PB_predict_overwrite, interpolators[interpolator_id], level_dimensions[level][3], strides, dir);
                 } else if(S == state::B) {
                     interpolation(data, begins[i], ends[i], PB_predict_overwrite, interpolators[interpolator_id], 221, strides, dir);
@@ -463,7 +468,9 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                     // std::cout << "param0 = " << params[0] << " p1 = " << params[1] << " cmp coeff=" << coeff_idx << std::endl;
                     interpolation(data, begins[i], ends[i], PB_predict_overwrite, interpolators[interpolator_id], 411, strides, dir);
                 } else if(S == state::E) {
-                    interpolation(data, begins[i], ends[i], PB_predict_overwrite, interpolators[interpolator_id], 231, strides, last_dir);
+                    dir = (level_dimensions[level][3] % 10) - 1;
+
+                    interpolation(data, begins[i], ends[i], PB_predict_overwrite, interpolators[interpolator_id], 231, strides, dir);
                 } else if(S == state::D) {
                     dir = 3 - (level_dimensions[level][3] % 10);
                     std::cout << "from D: " << "dir = " << dir << std::endl;
@@ -591,7 +598,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
     }
 
     void level_dimension_loader() {
-        std::ifstream infile("Uf48.bin.dat2.txt"); 
+        std::ifstream infile("Uf48.bin.dat.txt"); 
         std::string line;
 
         while (std::getline(infile, line)) {
