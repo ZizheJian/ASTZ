@@ -40,16 +40,16 @@ else:
     args.data=data_backup
     args.data_decompressed=add_average_and_residual_data(args)
 max_err=(args.data-args.data_decompressed).abs().max().item()
-print(f"max_err={max_err}")
+print(f"max_err={max_err}",flush=True)
 mse=((args.data-args.data_decompressed)**2).mean().item()
 psnr=10*math.log10((args.data_max-args.data_min)**2/mse)
-print(f"psnr= {psnr:.6f}")
+print(f"psnr= {psnr:.6f}",flush=True)
 with open(args.data_path+".fhde.bin","wb") as f:
     args.data_decompressed.numpy().tofile(f)
 calculateSSIM_command=f"calculateSSIM -f {args.data_path} {args.data_path}.fhde.bin {args.data_shape[2]} {args.data_shape[1]} {args.data_shape[0]}"
 calculateSSIM_ouput=subprocess.check_output(calculateSSIM_command,shell=True,encoding="utf-8")
 ssim=float(calculateSSIM_ouput.strip().split("\n")[-1].split()[-1])
-print(f"ssim= {ssim:.6f}")
+print(f"ssim= {ssim:.6f}",flush=True)
 if not args.doughnut:
     compressQuantBins_command=f"compressQuantBins {os.path.join(args.project_root,'qb',f'{args.data_name}.qb')}"
     compressQuantBins_output=subprocess.check_output(compressQuantBins_command,shell=True,encoding="utf-8")
@@ -64,8 +64,8 @@ else:
     compressQuantBins_command=f"compressQuantBins qb/{args.data_name}_residual.bin"
     compressQuantBins_output=subprocess.check_output(compressQuantBins_command,shell=True,encoding="utf-8")
     bitstream_length_residual=int(compressQuantBins_output.strip().split("\n")[-3].split()[-5])
-    print(f"bitstream_length_average= {bitstream_length_average}")
-    print(f"bitstream_length_residual= {bitstream_length_residual}")
+    print(f"bitstream_length_average= {bitstream_length_average}",flush=True)
+    print(f"bitstream_length_residual= {bitstream_length_residual}",flush=True)
     cr=(args.data_shape[0]*args.data_shape[1]*args.data_shape[2]*4)/(bitstream_length_average+bitstream_length_residual)
     
-print(f"cr= {cr:.6f}")
+print(f"cr= {cr:.6f}",flush=True)

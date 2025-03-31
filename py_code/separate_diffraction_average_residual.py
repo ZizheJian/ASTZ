@@ -26,9 +26,9 @@ def get_actual_residual_data(args:args_c):
     Y=np.linspace((1-args.data_shape[2])/2,(args.data_shape[2]-1)/2,args.data_shape[2])
     X,Y=np.meshgrid(X,Y)
     R=np.round(np.sqrt(X**2+Y**2)).astype(int)
-    print(args.data_residual.shape)
-    print(args.data.shape)
-    print(args.data_average_decompressed.shape)
+    print(args.data_residual.shape,flush=True)
+    print(args.data.shape,flush=True)
+    print(args.data_average_decompressed.shape,flush=True)
     for i0 in range(args.data_shape[0]):
         args.data_residual[i0]=args.data[i0]-args.data_average_decompressed[0,i0,R]
 

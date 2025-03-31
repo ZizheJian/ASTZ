@@ -83,20 +83,20 @@ def decode_conv(mat_X:Tensor,mask_core:Tensor,args:args_c)->Tensor:
 def search_topology(args:args_c,topology_manager:topology_manager_c,part_name:str=""):
     if part_name=="":
         FHDE_threshold=args.FHDE_threshold
-        mask_pos_file_name=os.path.join(args.project_root,"mask_pos",f"{args.data_name}.txt")
+        topology_list_file_name=os.path.join(args.project_root,"topology_list",f"{args.data_name}.txt")
     elif part_name=="average":
         FHDE_threshold=args.FHDE_threshold_average
-        mask_pos_file_name=os.path.join(args.project_root,f"mask_pos/{args.data_name}_average.txt")
+        topology_list_file_name=os.path.join(args.project_root,f"topology_list/{args.data_name}_average.txt")
     elif part_name=="residual":
         FHDE_threshold=args.FHDE_threshold_residual
-        mask_pos_file_name=os.path.join(args.project_root,f"mask_pos/{args.data_name}_residual.txt")
+        topology_list_file_name=os.path.join(args.project_root,f"topology_list/{args.data_name}_residual.txt")
     else:
         raise Exception("part_name参数错误")
     tgt_data=copy.deepcopy(args.data).unsqueeze(0).unsqueeze(0)
     mask=torch.zeros((1,2)+args.data.shape,dtype=torch.bool)#mask[0,0]表示在反向过程中尚未处理的数据，mask[0,1]表示正在处理的数据。mask_block[0,2]表示未出界数据
     mask[:,0]=True
     total_data_num=0
-    with open(mask_pos_file_name,"w") as f:
+    with open(topology_list_file_name,"w") as f:
         f.write("")
     for i in range((np.ceil(np.log2(args.data_shape[0]))+np.ceil(np.log2(args.data_shape[1]))+np.ceil(np.log2(args.data_shape[2]))).astype(int)):
         ########生成possible_topology_id_list########
@@ -153,8 +153,9 @@ def search_topology(args:args_c,topology_manager:topology_manager_c,part_name:st
                     if valid_equations.sum().item()>0:
                         mat_A_filtered=torch.cat((mat_A[:-param_num][valid_equations],mat_A[-param_num:]),dim=0)
                         mat_B_filtered=torch.cat((mat_B[:-param_num][valid_equations],mat_B[-param_num:]),dim=0)
-                        lstsq_result=torch.linalg.lstsq(mat_A_filtered,mat_B_filtered,driver="gels")
-                        mat_X=lstsq_result.solution
+                        # lstsq_result=torch.linalg.lstsq(mat_A_filtered,mat_B_filtered,driver="gels")
+                        # mat_X=lstsq_result.solution
+                        mat_X=torch.cat((torch.ones(param_num-args.pos_ch)/(param_num-args.pos_ch),torch.zeros(args.pos_ch)))
                         mat_X_quantized=quantize_parameter(mat_X,args)
                         mat_X=mat_X_quantized*2*args.parameter_eb
                         err=mat_A_filtered@mat_X-mat_B_filtered
@@ -168,7 +169,7 @@ def search_topology(args:args_c,topology_manager:topology_manager_c,part_name:st
                     rmsqb_block=(loss**0.5)/(2*args.abs_eb)
                     rmsqb+=(rmsqb_block**2)*(tgt_num+param_num)
             rmsqb=(rmsqb/(mask[:,1::2].sum().item()))**0.5
-            print(f"topology={topology_id}, rmsqb={rmsqb}")
+            print(f"topology={topology_id}, rmsqb={rmsqb}",flush=True)
             if best_rmsqb>rmsqb:
                 best_rmsqb=rmsqb
                 best_topology_id=topology_id
@@ -179,38 +180,38 @@ def search_topology(args:args_c,topology_manager:topology_manager_c,part_name:st
         ########保存最佳topology########
         topology_id=best_topology_id
         mask=best_mask
-        with open(mask_pos_file_name,"a") as f:
+        with open(topology_list_file_name,"a") as f:
             f.write(f"{tgt_data.shape[2]} {tgt_data.shape[3]} {tgt_data.shape[4]} {topology_id}\n")
         total_data_num+=mask[:,1::2].sum().item()
         tgt_data[mask[:,1:2]]=0
         mask[0,1]=False
         tgt_data,mask=shrink_data(tgt_data,mask,args)
-        print(args.data_shape)
+        print(args.data_shape,flush=True)
         args.abs_eb=abs_eb_backup
     total_data_num+=1
-    print(f"total_data_num={total_data_num}")
+    print(f"total_data_num={total_data_num}",flush=True)
 
 def apply_topology(args:args_c,topology_manager:topology_manager_c,part_name:str=""):
     if part_name=="":
         FHDE_threshold=args.FHDE_threshold
-        mask_pos_file_name=os.path.join(args.project_root,"mask_pos",f"{args.data_name}.txt")
+        topology_list_file_name=os.path.join(args.project_root,"topology_list",f"{args.data_name}.txt")
         qb_file_name=os.path.join(args.project_root,"qb",f"{args.data_name}.qb")
         freq_file_name=os.path.join(args.project_root,"freq",f"{args.data_name}.txt")
     elif part_name=="average":
         FHDE_threshold=args.FHDE_threshold_average
-        mask_pos_file_name=f"/home/x-zjian1/jzzz/mask_pos/{args.data_name}_average.txt"
+        topology_list_file_name=f"/home/x-zjian1/jzzz/topology_list/{args.data_name}_average.txt"
         qb_file_name=f"/home/x-zjian1/jzzz/qb/{args.data_name}_average.bin"
         freq_file_name=f"/home/x-zjian1/jzzz/freq/{args.data_name}_average.txt"
     elif part_name=="residual":
         FHDE_threshold=args.FHDE_threshold_residual
-        mask_pos_file_name=f"/home/x-zjian1/jzzz/mask_pos/{args.data_name}_residual.txt"
+        topology_list_file_name=f"/home/x-zjian1/jzzz/topology_list/{args.data_name}_residual.txt"
         qb_file_name=f"/home/x-zjian1/jzzz/qb/{args.data_name}_residual.bin"
         freq_file_name=f"/home/x-zjian1/jzzz/freq/{args.data_name}_residual.txt"
     else:
         raise Exception("part_name参数错误")
     args.cur_shape_list=[]
     args.topology_id_list=[]
-    with open(mask_pos_file_name,"r") as f:
+    with open(topology_list_file_name,"r") as f:
         for line in f:
             args.cur_shape_list.append([int(line.split()[0]),int(line.split()[1]),int(line.split()[2])])
             args.topology_id_list.append(int(line.split()[3]))
@@ -256,18 +257,19 @@ def apply_topology(args:args_c,topology_manager:topology_manager_c,part_name:str
                 conv=decode_conv(mat_X_quantized,mask_core,args)*2*args.parameter_eb
                 h=F.conv3d(cur_block_ext,conv)
             if args.method=="FHDE":
-                mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block_cropped,mask_block_cropped,mask_core,tgt_num,param_num,args)
-                lstsq_result=torch.linalg.lstsq(mat_A,mat_B,driver="gels")
-                mat_X=lstsq_result.solution
-                err=mat_A[:-param_num]@mat_X-mat_B[:-param_num]
-                valid_equations=(err.abs()<=args.abs_eb*FHDE_threshold)
-                if valid_equations.sum().item()>0:
-                    mat_A_filtered=torch.cat((mat_A[:-param_num][valid_equations],mat_A[-param_num:]),dim=0)
-                    mat_B_filtered=torch.cat((mat_B[:-param_num][valid_equations],mat_B[-param_num:]),dim=0)
-                    lstsq_result=torch.linalg.lstsq(mat_A_filtered,mat_B_filtered,driver="gels")
-                    mat_X=lstsq_result.solution
-                else:
-                    mat_X=torch.cat((torch.ones(param_num-args.pos_ch)/(param_num-args.pos_ch),torch.zeros(args.pos_ch)))
+                # mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block_cropped,mask_block_cropped,mask_core,tgt_num,param_num,args)
+                # lstsq_result=torch.linalg.lstsq(mat_A,mat_B,driver="gels")
+                # mat_X=lstsq_result.solution
+                # err=mat_A[:-param_num]@mat_X-mat_B[:-param_num]
+                # valid_equations=(err.abs()<=args.abs_eb*FHDE_threshold)
+                # if valid_equations.sum().item()>0:
+                #     mat_A_filtered=torch.cat((mat_A[:-param_num][valid_equations],mat_A[-param_num:]),dim=0)
+                #     mat_B_filtered=torch.cat((mat_B[:-param_num][valid_equations],mat_B[-param_num:]),dim=0)
+                #     lstsq_result=torch.linalg.lstsq(mat_A_filtered,mat_B_filtered,driver="gels")
+                #     mat_X=lstsq_result.solution
+                # else:
+                #     mat_X=torch.cat((torch.ones(param_num-args.pos_ch)/(param_num-args.pos_ch),torch.zeros(args.pos_ch)))
+                mat_X=torch.cat((torch.ones(param_num-args.pos_ch)/(param_num-args.pos_ch),torch.zeros(args.pos_ch)))
                 mat_X_quantized=quantize_parameter(mat_X,args)
                 args.parameter.append(mat_X_quantized)
                 conv=decode_conv(mat_X_quantized,mask_core,args)*2*args.parameter_eb
@@ -282,20 +284,20 @@ def apply_topology(args:args_c,topology_manager:topology_manager_c,part_name:str
                         block_id[1]:block_id[1]+args.model_block_step[1],
                         block_id[2]:block_id[2]+args.model_block_step[2]]=cur_block_cropped
         mask[:,0:1]+=mask[:,1:2]
-        print(tgt_data.shape)
+        print(tgt_data.shape,flush=True)
         args.abs_eb=abs_eb_backup
-    print(f"qb_num={args.qb_end}")
-    print(f"qb_min={args.qb.min().item()}, qb_max={args.qb.max().item()}")
+    print(f"qb_num={args.qb_end}",flush=True)
+    print(f"qb_min={args.qb.min().item()}, qb_max={args.qb.max().item()}",flush=True)
     with open(qb_file_name,"wb") as f:
         (args.qb+32768).numpy().tofile(f)
     args.data_decompressed=cur_data[0,0]
-    print(args.qb.shape)
+    print(args.qb.shape,flush=True)
     freq=torch.bincount(args.qb+32768,minlength=65536)
     with open(freq_file_name,"w") as f:
         for i in range(65536):
             f.write(str(i)+" "+str(freq[i].item())+"\n")
     max_err=(tgt_data-cur_data).abs().max().item()
-    print(f"max_err={max_err}")
+    print(f"max_err={max_err}",flush=True)
 
 def apply_topology2(args:args_c,part_name:str):
     args.qb=torch.zeros(args.data_shape[0]*args.data_shape[1]*args.data_shape[2],dtype=torch.int32)
@@ -303,8 +305,8 @@ def apply_topology2(args:args_c,part_name:str):
     quantize(args.data,torch.ones_like(args.data,dtype=torch.bool),args.abs_eb,args)
     cur_data=torch.zeros_like(args.data)
     cur_data+=args.qb[args.qb_begin:args.qb_end].reshape(args.data_shape)*2*args.abs_eb
-    print(f"qb_num={args.qb_end}")
-    print(f"qb_min={args.qb.min().item()}, qb_max={args.qb.max().item()}")
+    print(f"qb_num={args.qb_end}",flush=True)
+    print(f"qb_min={args.qb.min().item()}, qb_max={args.qb.max().item()}",flush=True)
     with open(f"/home/x-zjian1/jzzz/qb/{args.data_name}_{part_name}.bin","wb") as f:
         (args.qb+32768).numpy().tofile(f)
     freq=torch.bincount(args.qb+32768,minlength=65536)
@@ -312,5 +314,5 @@ def apply_topology2(args:args_c,part_name:str):
         for i in range(65536):
             f.write(str(i)+" "+str(freq[i].item())+"\n")
     max_err=(args.data-cur_data).abs().max().item()
-    print(f"max_err={max_err}")
+    print(f"max_err={max_err}",flush=True)
     return cur_data

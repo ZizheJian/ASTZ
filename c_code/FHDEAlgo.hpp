@@ -31,7 +31,7 @@ size_t FHDE_compress(Config &conf,T *data,uchar *cmpData,size_t cmpCap)
     assert(N==conf.N);
     calAbsErrorBound(conf,data);
     auto fhde=make_compressor_fhde_generic<T,N>(make_decomposition_FHDE<T,N>(conf,LinearQuantizer<T>(conf.abs_eb,conf.qb_cnt/2)),HuffmanEncoder<int>(),Lossless_zstd());
-    // return fhde->compress(conf,data,cmpData,cmpCap);
+    return fhde->compress(conf,data,cmpData,cmpCap);
 }
 
 // template <class T,uint N>
