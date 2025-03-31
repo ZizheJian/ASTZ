@@ -134,13 +134,18 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                     }
                     break;
                 case state::F:
-
                     if(foundone) {
                         std::cout << "waa10" << std::endl;
                     } else {
                         // std::cout << "waa" << std::endl;
                     }
                     break;
+                case state::G:
+                    if(foundone) {
+                        std::cout << "waa11" << std::endl;
+                    } else {
+                        // std::cout << "waa" << std::endl;
+                    }
                 default:
                     break;
                 }
@@ -169,7 +174,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                 // }
                 if(S == state::A) {
                     dir = 3 - (level_dimensions[level][3] % 10);
-                    interpolation(dec_data, begins[i], ends[i], PB_recover, interpolators[interpolator_id], 121, strides, dir);
+                    interpolation(dec_data, begins[i], ends[i], PB_recover, interpolators[interpolator_id], level_dimensions[level][3], strides, dir);
                 } else if(S == state::B) {
                     interpolation(dec_data, begins[i], ends[i], PB_recover, interpolators[interpolator_id], 221, strides, dir);
                 } else if (S == state::C) {
@@ -203,6 +208,10 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                     dir = 3 - (level_dimensions[level][3] % 10);
                     std::cout << "(decmp) from F: " << "dir = " << dir << std::endl;
                     interpolation(dec_data, begins[i], ends[i], PB_recover, interpolators[interpolator_id], 431, strides, dir);
+                } else if(S == state::G) {
+                    dir = 3 - (level_dimensions[level][3] % 10);
+                    std::cout << "from G: " << "dir = " << dir << std::endl;
+                    interpolation(dec_data, begins[i], ends[i], PB_recover, interpolators[interpolator_id], level_dimensions[level][3], strides, dir);
                 }
                 { // Log
                     std::cout << "quant_index: " << quant_index << std::endl;
@@ -228,10 +237,17 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                     else {S = state::F; std::cout << "transfering D to F" << std::endl;}
                     break;
                 case state::A:
-                    S = state::D;
+                    if(level_dimensions[level][3] > 130) {
+                        S = state::G;
+                    } else {
+                        S = state::D;
+                    }
                     break;
                 case state::F:
                     S = state::Z;
+                    break;
+                case state::G:
+                    S = state::E;
                     break;
                 default:
                     break;
@@ -383,13 +399,18 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                     }
                     break;
                 case state::F:
-
                     if(foundone) {
                         std::cout << "waa10" << std::endl;
                     } else {
                         // std::cout << "waa" << std::endl;
                     }
                     break;
+                case state::G:
+                    if(foundone) {
+                        std::cout << "waa11" << std::endl;
+                    } else {
+                        // std::cout << "waa" << std::endl;
+                    }
                 default:
                     break;
                 }
@@ -405,7 +426,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                 // std::cout << "block" << i << ": " << begins[i][0] << ' ' << begins[i][1] << ' ' << begins[i][2] << " to " << ends[i][0] << ' ' << ends[i][1] << ' ' << ends[i][2] << std::endl;
                 if(S == state::A) {
                     dir = 3 - (level_dimensions[level][3] % 10);
-                    interpolation(data, begins[i], ends[i], PB_predict_overwrite, interpolators[interpolator_id], 121, strides, dir);
+                    interpolation(data, begins[i], ends[i], PB_predict_overwrite, interpolators[interpolator_id], level_dimensions[level][3], strides, dir);
                 } else if(S == state::B) {
                     interpolation(data, begins[i], ends[i], PB_predict_overwrite, interpolators[interpolator_id], 221, strides, dir);
                 } else if (S == state::C) {
@@ -458,6 +479,10 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                     dir = 3 - (level_dimensions[level][3] % 10);
                     std::cout << "from F: " << "dir = " << dir << std::endl;
                     interpolation(data, begins[i], ends[i], PB_predict_overwrite, interpolators[interpolator_id], 431, strides, dir);
+                } else if(S == state::G) {
+                    dir = 3 - (level_dimensions[level][3] % 10);
+                    std::cout << "from G: " << "dir = " << dir << std::endl;
+                    interpolation(data, begins[i], ends[i], PB_predict_overwrite, interpolators[interpolator_id], level_dimensions[level][3], strides, dir);
                 }
                 { // Log
                     std::cout << "quant_index: " << quant_index << std::endl;
@@ -483,10 +508,17 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                     else {S = state::F; std::cout << "transfering D to F" << std::endl;}
                     break;
                 case state::A:
-                    S = state::D;
+                    if(level_dimensions[level][3] > 130) {
+                        S = state::G;
+                    } else {
+                        S = state::D;
+                    }
                     break;
                 case state::F:
                     S = state::Z;
+                    break;
+                case state::G:
+                    S = state::E;
                     break;
                 default:
                     break;
@@ -1438,8 +1470,9 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
             for (size_t j = (begin_real[order[1]] ? begin_real[order[1]] + strides[order[1]] : 0); j <= end_real[order[1]]; j += strides[order[1]]) {
                 size_t begin_real_offset = i * dimension_offsets[order[0]] + j * dimension_offsets[order[1]] +
                                       begin_real[order[2]] * dimension_offsets[order[2]];
-                int cnt = (strides[order[0]] ? (i - begin_real[order[0]]) / strides[order[0]] : 0) + (strides[order[1]] ? (j - begin_real[order[1]]) / strides[order[1]] : 0);
-                if(cnt % 2 == 0) {
+                int cnti = (strides[order[0]] ? (i - begin_real[order[0]]) / strides[order[0]] : 0);
+                int cntj = (strides[order[1]] ? (j - begin_real[order[1]]) / strides[order[1]] : 0);
+                if(((cnti % 2) + cntj) % 2 == 0) {
                     std::cout << "even i: " << (strides[order[0]] ? (i - begin_real[order[0]]) / strides[order[0]] : 0) << " j: " << (strides[order[1]] ? (j - begin_real[order[1]]) / strides[order[1]] : 0) << std::endl;
                     predict_error += block_interpolation_1d(
                                 data, begin_real_offset, begin_real_offset + (end_real[order[2]] - begin_real[order[2]]) * dimension_offsets[order[2]],
@@ -1459,8 +1492,127 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
         return predict_error;
     }
 
-    
-    
+    double interpolation_13x(T *data, std::array<int, 3> begin_real, std::array<int, 3> end_real, std::array<int, 3> strides, int dir, const std::string &interp_func,
+                                  const PredictorBehavior pb) {
+        // { // Log
+        //     std::cout << "[Log] begin_real: " << begin_real << ", end_real: " << end << ", stride: " << stride << std::endl;
+        // }
+        std::cout << "dir=" << dir << std::endl;
+
+        std::array<int, 3> order{0, 0, 0};
+        {
+            switch (dir)
+            {
+            case 0:
+                order = {1, 2, 0};
+                std::cout << "order1,2,0" << std::endl;
+                break;
+            case 1:
+                order = {0, 2, 1};
+                std::cout << "order0,2,1" << std::endl;
+                break;
+            case 2:
+                order = {0, 1, 2};
+                std::cout << "order0,1,2" << std::endl;
+                break;
+            
+            default:
+                break;
+            }
+        }
+        double predict_error = 0;
+        for (size_t i = begin_real[order[0]] + strides[order[0]]; i <= end_real[order[0]]; i += 2 * strides[order[0]]) {
+            for (size_t j = begin_real[order[1]] + strides[order[1]]; j <= end_real[order[1]]; j += 2 * strides[order[1]]) {
+                size_t begin_real_offset = i * dimension_offsets[order[0]] + j * dimension_offsets[order[1]] +
+                                      begin_real[order[2]] * dimension_offsets[order[2]];
+                if(i == end_real[order[0]]) {
+                    if(j == end_real[order[1]]) {
+                        std::cout << "corner2" << std::endl;
+                        predict_error += block_interpolation_2d_13_corner(
+                            data, begin_real_offset, begin_real_offset + (end_real[order[2]] - begin_real[order[2]]) * dimension_offsets[order[2]],
+                            strides[order[2]] * dimension_offsets[order[2]], strides[order[0]] * dimension_offsets[order[0]], strides[order[1]] * dimension_offsets[order[1]], interp_func, pb);
+                    } else {
+                        std::cout << "corner11" << std::endl;
+
+                        predict_error += block_interpolation_2d_13_edge(
+                            data, begin_real_offset, begin_real_offset + (end_real[order[2]] - begin_real[order[2]]) * dimension_offsets[order[2]],
+                            strides[order[2]] * dimension_offsets[order[2]], strides[order[0]] * dimension_offsets[order[0]], strides[order[1]] * dimension_offsets[order[1]], interp_func, pb);
+                    }
+                } else if(j == end_real[order[1]]) {
+                        std::cout << "corner12" << std::endl;
+                    predict_error += block_interpolation_2d_13_edge(
+                            data, begin_real_offset, begin_real_offset + (end_real[order[2]] - begin_real[order[2]]) * dimension_offsets[order[2]],
+                            strides[order[2]] * dimension_offsets[order[2]], strides[order[1]] * dimension_offsets[order[1]], strides[order[0]] * dimension_offsets[order[0]], interp_func, pb);
+                } else {
+                    std::cout << "mid" << std::endl;
+                    predict_error += block_interpolation_2d_13(
+                                data, begin_real_offset, begin_real_offset + (end_real[order[2]] - begin_real[order[2]]) * dimension_offsets[order[2]],
+                                strides[order[2]] * dimension_offsets[order[2]], strides[order[0]] * dimension_offsets[order[0]], strides[order[1]] * dimension_offsets[order[1]], interp_func, pb);
+                }
+                if(strides[order[1]] == 0) break;
+            }
+            if(strides[order[0]] == 0) break;
+        }
+        return predict_error;
+    }
+    double interpolation_26x(T *data, std::array<int, 3> begin_real, std::array<int, 3> end_real, std::array<int, 3> strides, int dir, const std::string &interp_func,
+                                  const PredictorBehavior pb) {
+        // { // Log
+        //     std::cout << "[Log] begin_real: " << begin_real << ", end_real: " << end << ", stride: " << stride << std::endl;
+        // }
+        std::cout << "dir=" << dir << std::endl;
+
+        std::array<int, 3> order{0, 0, 0};
+        {
+            switch (dir)
+            {
+            case 0:
+                order = {1, 2, 0};
+                std::cout << "order1,2,0" << std::endl;
+                break;
+            case 1:
+                order = {0, 2, 1};
+                std::cout << "order0,2,1" << std::endl;
+                break;
+            case 2:
+                order = {0, 1, 2};
+                std::cout << "order0,1,2" << std::endl;
+                break;
+            
+            default:
+                break;
+            }
+        }
+        double predict_error = 0;
+        std::cout << "26x:" << std::endl;
+        // int cnt = (begin_real[order[0]] ? 1 : 0) + (begin_real[order[1]] ? 1 : 0);
+
+        for (size_t i = (begin_real[order[0]] ? begin_real[order[0]] + 2 * strides[order[0]] : 0); i <= end_real[order[0]]; i += 2 * strides[order[0]]) {
+            for (size_t j = (begin_real[order[1]] ? begin_real[order[1]] + 2 * strides[order[1]] : 0); j <= end_real[order[1]]; j += 2 * strides[order[1]]) {
+                size_t begin_real_offset = i * dimension_offsets[order[0]] + j * dimension_offsets[order[1]] +
+                                      begin_real[order[2]] * dimension_offsets[order[2]];
+                predict_error += block_interpolation_1d(
+                                data, begin_real_offset, begin_real_offset + (end_real[order[2]] - begin_real[order[2]]) * dimension_offsets[order[2]],
+                                strides[order[2]] * dimension_offsets[order[2]], interp_func, pb);
+                
+                if(strides[order[1]] == 0) break;
+            }
+            if(strides[order[0]] == 0) break;
+        }
+        for (size_t i = begin_real[order[0]] + strides[order[0]]; i <= end_real[order[0]]; i += 2 * strides[order[0]]) {
+            for (size_t j = begin_real[order[1]] + strides[order[1]]; j <= end_real[order[1]]; j += 2 * strides[order[1]]) {
+                size_t begin_real_offset = i * dimension_offsets[order[0]] + j * dimension_offsets[order[1]] +
+                                      begin_real[order[2]] * dimension_offsets[order[2]];
+                predict_error += block_interpolation_1d_odd(
+                                data, begin_real_offset, begin_real_offset + (end_real[order[2]] - begin_real[order[2]]) * dimension_offsets[order[2]],
+                                strides[order[2]] * dimension_offsets[order[2]], interp_func, pb, begin_real[order[2]] == 0);
+                if(strides[order[1]] == 0) break;
+            }
+            if(strides[order[0]] == 0) break;
+        }
+        return predict_error;
+    }
+
     double interpolation(T *data, std::array<int, 3> begin,
                         std::array<int, 3> end,
                         const PredictorBehavior pb,
@@ -1490,6 +1642,8 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
             // coeff_idx++;
         } else if(action > 400) {
             return interpolation_41x(data, begin_real, end_real, strides,dir, interp_func, pb);
+        } else if(action > 260) {
+            return interpolation_26x(data, begin_real, end_real, strides,dir, interp_func, pb);
         } else if(action > 250) {
             return interpolation_25x(data, begin_real, end_real, strides,dir, interp_func, pb);
         } else if(action > 240) {
@@ -1498,6 +1652,8 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
             return interpolation_23x(data, begin_real, end_real, strides,dir, interp_func, pb);
         } else if(action > 200) {
             return interpolation_22x(data, begin_real, end_real, strides,dir, interp_func, pb);
+        } else if(action > 130) {
+            return interpolation_13x(data, begin_real, end_real, strides,dir, interp_func, pb);
         } else {
             return interpolation_12x(data, begin_real, end_real, strides,dir, interp_func, pb);
             // std::cout << "f22\n" << std::endl;
@@ -1976,7 +2132,131 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
 
         return predict_error;
     }
+    double block_interpolation_2d_13(T *data, size_t begin, size_t end, size_t stride, size_t stride_p1, size_t stride_p2, const std::string &interp_func,
+                                  const PredictorBehavior pb) {
+        // { // Log
+        //     std::cout << "[Log] begin: " << begin << ", end: " << end << ", stride: " << stride << std::endl;
+        // }
+        size_t n = (stride == 0) ? 1 : (end - begin) / stride + 1;
+        if(n <= 1) {
+            return 0;
+        }
 
+        double predict_error = 0;
+        // calc_coeff(data, begin, end, stride);
+        // coeff_list.push_back(std::vector<_Float32>{0.5,0.5});
+        // std::cout << "n=" << n << " begin=" << begin << " end=" << end << " stride=" << stride << " p1=" << stride_p1 << " p2=" << stride_p2<< std::endl;
+
+        
+        if (pb == PB_predict_overwrite) {
+            // float x0 = static_cast<float>(coeff_list.back()[0]);
+            // float x1 = static_cast<float>(coeff_list.back()[1]);
+            // std::cout << x0 << "   " << x1 << std::endl;
+
+            for (size_t i = 1; i < n - 1; i+=2) {
+                T *d = data + begin + i * stride;
+                // quantize(d - data, *d, interp_linear(*(d - stride), *(d + stride), x0, x1));
+                quantize(d - data, *d, interp_linear_2d_24x(*(d - stride_p1 - stride_p2 - stride), *(d - stride_p1 + stride_p2 - stride), *(d + stride_p1 - stride_p2 - stride), *(d + stride_p1 + stride_p2 - stride),
+                                                            *(d - stride_p1 - stride_p2 + stride), *(d - stride_p1 + stride_p2 + stride), *(d + stride_p1 - stride_p2 + stride), *(d + stride_p1 + stride_p2 + stride)));
+            }
+            if(n % 2 == 0) {
+                T *d = data + begin + (n - 1) * stride;
+                quantize(d - data, *d, interp_linear_2d_22x(*(d - stride_p1 - stride_p2 - stride), *(d - stride_p1 + stride_p2 - stride), *(d + stride_p1 - stride_p2 - stride), *(d + stride_p1 + stride_p2 - stride)));
+            }
+        } else {
+            for (size_t i = 1; i < n - 1; i+=2) {
+                T *d = data + begin + i * stride;
+                // quantize(d - data, *d, interp_linear(*(d - stride), *(d + stride), x0, x1));
+                recover(d - data, *d, interp_linear_2d_24x(*(d - stride_p1 - stride_p2 - stride), *(d - stride_p1 + stride_p2 - stride), *(d + stride_p1 - stride_p2 - stride), *(d + stride_p1 + stride_p2 - stride),
+                                                            *(d - stride_p1 - stride_p2 + stride), *(d - stride_p1 + stride_p2 + stride), *(d + stride_p1 - stride_p2 + stride), *(d + stride_p1 + stride_p2 + stride)));
+            }
+            if(n % 2 == 0) {
+                T *d = data + begin + (n - 1) * stride;
+                recover(d - data, *d, interp_linear_2d_22x(*(d - stride_p1 - stride_p2 - stride), *(d - stride_p1 + stride_p2 - stride), *(d + stride_p1 - stride_p2 - stride), *(d + stride_p1 + stride_p2 - stride)));
+            }
+        }
+        
+
+        return predict_error;
+    }
+    double block_interpolation_2d_13_edge(T *data, size_t begin, size_t end, size_t stride, size_t stride_p1, size_t stride_p2, const std::string &interp_func,
+                                  const PredictorBehavior pb) {
+        // { // Log
+        //     std::cout << "[Log] begin: " << begin << ", end: " << end << ", stride: " << stride << std::endl;
+        // }
+        size_t n = (stride == 0) ? 1 : (end - begin) / stride + 1;
+        if(n <= 1) {
+            return 0;
+        }
+        double predict_error = 0;
+        // calc_coeff(data, begin, end, stride);
+        // coeff_list.push_back(std::vector<_Float32>{0.5,0.5});
+
+        
+        if (pb == PB_predict_overwrite) {
+            // float x0 = static_cast<float>(coeff_list.back()[0]);
+            // float x1 = static_cast<float>(coeff_list.back()[1]);
+            // std::cout << x0 << "   " << x1 << std::endl;
+            for (size_t i = 1; i < n - 1; i+=2) {
+                T *d = data + begin + i * stride;
+                // quantize(d - data, *d, interp_linear(*(d - stride), *(d + stride), x0, x1));
+                quantize(d - data, *d, interp_linear_2d_22x(*(d - stride_p1 + stride_p2 - stride), *(d - stride_p1 - stride_p2 - stride),
+                                                            *(d - stride_p1 + stride_p2 + stride), *(d - stride_p1 - stride_p2 + stride)));
+            }
+            if(n % 2 == 0) {
+                T *d = data + begin + (n - 1) * stride;
+                quantize(d - data, *d, interp_linear(*(d - stride_p1 + stride_p2 - stride), *(d + stride_p1 - stride_p2 - stride), 0.5, 0.5));
+            }
+        } else {
+            for (size_t i = 1; i < n - 1; i+=2) {
+                T *d = data + begin + i * stride;
+                // quantize(d - data, *d, interp_linear(*(d - stride), *(d + stride), x0, x1));
+                recover(d - data, *d, interp_linear_2d_22x(*(d - stride_p1 + stride_p2 - stride), *(d - stride_p1 - stride_p2 - stride),
+                                                            *(d - stride_p1 + stride_p2 + stride), *(d - stride_p1 - stride_p2 + stride)));
+            }
+            if(n % 2 == 0) {
+                T *d = data + begin + (n - 1) * stride;
+                recover(d - data, *d, interp_linear(*(d - stride_p1 + stride_p2 - stride), *(d - stride_p1 - stride_p2 - stride), 0.5, 0.5));
+            }
+        }
+        
+
+        return predict_error;
+    }
+    
+    double block_interpolation_2d_13_corner(T *data, size_t begin, size_t end, size_t stride, size_t stride_p1, size_t stride_p2, const std::string &interp_func,
+                                  const PredictorBehavior pb) {
+        // { // Log
+        //     std::cout << "[Log] begin: " << begin << ", end: " << end << ", stride: " << stride << std::endl;
+        // }
+        size_t n = (stride == 0) ? 1 : (end - begin) / stride + 1;
+        if(n <= 1) {
+            return 0;
+        }
+        double predict_error = 0;
+        // calc_coeff(data, begin, end, stride);
+        // coeff_list.push_back(std::vector<_Float32>{0.5,0.5});
+
+        
+        if (pb == PB_predict_overwrite) {
+
+            for (size_t i = 1; i < n; i+=2) {
+                T *d = data + begin + i * stride;
+                // quantize(d - data, *d, interp_linear(*(d - stride), *(d + stride), x0, x1));
+                quantize(d - data, *d, *(d - stride_p1 - stride_p2 - stride));
+            }
+        } else {
+            for (size_t i = 1; i < n; i+=2) {
+                T *d = data + begin + i * stride;
+                // quantize(d - data, *d, interp_linear(*(d - stride), *(d + stride), x0, x1));
+                recover(d - data, *d, *(d - stride_p1 - stride_p2 - stride));
+            }
+        }
+        
+
+        return predict_error;
+    }
+    
 };
 
 template <class T, uint N, class Quantizer>
