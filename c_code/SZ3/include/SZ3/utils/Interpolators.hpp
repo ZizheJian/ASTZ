@@ -39,6 +39,12 @@ inline T interp_linear_2d_22x(T a_botleft, T a_botright, T a_topleft, T a_toprig
 }
 
 template <class T>
+inline T interp_linear_2d_24x(T a_botleft, T a_botright, T a_topleft, T a_topright, T b_botleft, T b_botright, T b_topleft, T b_topright) {
+    // return (a + a_left + a_right + b + b_left + b_right) / 6;
+    return (a_botleft + a_botright + a_topleft + a_topright + b_botleft + b_botright + b_topleft + b_topright) / 8;
+}
+
+template <class T>
 inline T interp_linear_2d_22x_corner1(T a_botleft, T a_botright) {
     // return (a + a_left + a_right + b + b_left + b_right) / 6;
     return (a_botleft + a_botright) / 2;

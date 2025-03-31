@@ -18,6 +18,12 @@
 #include <stdexcept>
 #include <cmath>
 #include <algorithm> // std::swap
+#include <iostream>
+
+// 如有需要可启用 OpenMP
+// #ifdef _OPENMP
+#include <omp.h>
+// #endif
 
 namespace SZ3 {
 
@@ -163,6 +169,270 @@ std::vector<double> solveWithRegularization(std::vector<double>& M,
     return x;
 }
 
+
+
+// 计算向量点积
+double dotProduct(const std::vector<double>& a, const std::vector<double>& b) {
+    if(a.size() != b.size())
+        throw std::runtime_error("Vectors must be of same length.");
+    double sum = 0.0;
+    for (size_t i = 0; i < a.size(); i++) {
+        sum += a[i] * b[i];
+    }
+    return sum;
+}
+
+/**
+ * @brief 用信息势作为损失函数（最小误差熵），利用 mini-batch 随机采样来近似梯度下降
+ *        模型为 f(v)=v·w+s
+ *
+ * @param X            训练数据，每一行为一个 k 维向量 v
+ * @param y            训练数据对应的标量目标值，大小为 N
+ * @param w            模型参数 w（k 维向量），函数内更新
+ * @param s            模型偏置 s（标量），注意信息势对 s 不敏感，通常可固定或辅以其他损失
+ * @param sigma        高斯核宽度参数 σ（控制核的平滑度）
+ * @param learningRate 学习率
+ * @param iterations   迭代次数
+ */
+void gradientDescentInformationPotential(const std::vector<std::vector<double>>& X,
+                                                    const std::vector<double>& y,
+                                                    std::vector<double>& w,
+                                                    double s,
+                                                    double sigma,
+                                                    double learningRate,
+                                                    int iterations)
+{
+    int batchPairs = 256;
+    int N = X.size();
+    if (N == 0)
+        throw std::runtime_error("No training samples provided.");
+    int k = X[0].size();
+    if (w.size() != static_cast<size_t>(k))
+        throw std::runtime_error("Size of w must equal feature dimension k.");
+
+    // 用于随机数生成
+    std::srand(static_cast<unsigned int>(std::time(nullptr)));
+
+    // 临时存放每个样本的误差 e_i = v_i·w + s - y_i
+    std::vector<double> errors(N, 0.0);
+
+    for (int iter = 0; iter < iterations; iter++) {
+        // 1. 计算所有样本的误差
+        for (int i = 0; i < N; i++) {
+            if (X[i].size() != static_cast<size_t>(k))
+                throw std::runtime_error("All feature vectors must have the same length.");
+            errors[i] = dotProduct(X[i], w) + s - y[i];
+        }
+
+        // 2. 随机采样 batchPairs 个样本对，累加梯度和损失
+        std::vector<double> grad_w(k, 0.0);
+        double loss = 0.0;
+
+        // 采用 OpenMP 并行化采样求和（每次迭代内各对相对独立）
+        #pragma omp parallel for reduction(+:loss)
+        for (int b = 0; b < batchPairs; b++) {
+            // 随机采样两个样本索引
+            int i = std::rand() % N;
+            int j = std::rand() % N;
+            double diff = errors[i] - errors[j];
+            double kernel = std::exp(- (diff * diff) / (4 * sigma * sigma));
+            // 累加损失
+            loss -= kernel;
+
+            double factor = (diff) / (2 * sigma * sigma) * kernel;
+            // 由于 grad_w 是一个数组，需要保护更新（采用临界区）
+            #pragma omp critical
+            {
+                for (int d = 0; d < k; d++) {
+                    grad_w[d] += factor * (X[i][d] - X[j][d]);
+                }
+            }
+        }
+        // 归一化梯度和损失
+        loss /= batchPairs;
+        for (int d = 0; d < k; d++) {
+            grad_w[d] /= batchPairs;
+        }
+
+        // 每隔一定迭代数输出损失
+        if ((iter + 1) % 100 == 0)
+            std::cout << "Iteration " << iter+1 << ", Loss = " << loss << std::endl;
+
+        // 3. 更新参数 w（s 在信息势中梯度为 0，此处不更新）
+        for (int d = 0; d < k; d++) {
+            w[d] -= learningRate * grad_w[d];
+        }
+    }
+}
+// /**
+//  * @brief 用信息势作为损失函数，对模型 f(v)=v·w+s 进行梯度下降优化，并自动调整学习率
+//  *
+//  * 模型预测为 f(v)= dot(v, w) + s，其中 s 在本例中保持不变（信息势对 s 的梯度为 0）。
+//  *
+//  * 损失函数定义为：
+//  *   J = - (1/N^2)*sum_{i,j} exp(- (e_i - e_j)^2/(4σ^2))
+//  * 其中 e_i = dot(v_i, w) + s - y_i.
+//  *
+//  * 每隔 checkInterval 次迭代检查损失改善情况，若改善不足则将学习率乘以 lr_decay_factor。
+//  *
+//  * @param X            训练数据，每一行为一个 k 维向量
+//  * @param y            训练数据对应的标量目标值，大小为 N
+//  * @param w            模型参数 w（k 维向量），函数内更新
+//  * @param s            模型偏置 s（标量），保持不变
+//  * @param sigma        高斯核宽度参数 σ
+//  * @param learningRate 初始学习率（会在过程中自动调整）
+//  * @param iterations   总迭代次数
+//  */
+// // void gradientDescentInformationPotential(const std::vector<std::vector<double>>& X,
+// //                                                    const std::vector<double>& y,
+// //                                                    std::vector<double>& w,
+// //                                                    double s,
+// //                                                    double sigma,
+// //                                                    double learningRate,
+// //                                                    int iterations)
+// {
+//     int N = X.size();
+//     if (N == 0)
+//         throw std::runtime_error("No training samples provided.");
+//     int k = X[0].size();
+//     if (w.size() != static_cast<size_t>(k))
+//         throw std::runtime_error("Size of w must equal feature dimension k.");
+
+//     std::vector<double> errors(N, 0.0);
+
+//     // 自动调整学习率参数
+//     int checkInterval = 30;         // 每100次迭代检查一次
+//     double threshold = 1e-4;           // 若损失改善小于此阈值则降低学习率
+//     double lr_decay_factor = 0.5;      // 学习率衰减因子
+//     double prevLoss = 1e12;            // 初始设一个很大的prevLoss
+
+//     for (int iter = 0; iter < iterations; iter++) {
+//         // 1. 计算每个样本的误差 e_i = dot(v_i, w) + s - y_i
+//         for (int i = 0; i < N; i++) {
+//             if (X[i].size() != static_cast<size_t>(k))
+//                 throw std::runtime_error("All feature vectors must have the same length.");
+//             errors[i] = dotProduct(X[i], w) + s - y[i];
+//         }
+
+//         // 2. 计算损失和对 w 的梯度
+//         double loss = 0.0;
+//         std::vector<double> grad_w(k, 0.0);
+
+//         // 对于每个样本对 (i, j)
+//         for (int i = 0; i < N; i++) {
+//             for (int j = 0; j < N; j++) {
+//                 double diff = errors[i] - errors[j];
+//                 double kernel = std::exp(- (diff * diff) / (4 * sigma * sigma));
+//                 loss -= kernel;  // 累加负的核值
+//                 double factor = (diff) / (2 * sigma * sigma) * kernel;
+//                 for (int d = 0; d < k; d++) {
+//                     grad_w[d] += factor * (X[i][d] - X[j][d]);
+//                 }
+//             }
+//         }
+//         // 归一化
+//         loss /= (N * N);
+//         for (int d = 0; d < k; d++) {
+//             grad_w[d] /= (N * N);
+//         }
+
+//         // 3. 自动调学习率：每 checkInterval 次迭代检查一次
+//         if ((iter + 1) % checkInterval == 0) {
+//             std::cout << "Iteration " << iter+1 << ", Loss = " << loss << ", Learning Rate = " << learningRate << std::endl;
+//             if ((prevLoss - loss) < threshold) {
+//                 learningRate *= lr_decay_factor;
+//                 std::cout << "Loss improvement less than threshold. Reducing learning rate to " << learningRate << std::endl;
+//             }
+//             prevLoss = loss;
+//         }
+
+//         // 4. 更新 w
+//         for (int d = 0; d < k; d++) {
+//             w[d] -= learningRate * grad_w[d];
+//         }
+//         if(1.0 - loss < 1e-4) return;
+//     }
+// }
+
+// /**
+//  * @brief 用信息势（最小误差熵）作为损失函数，对模型 f(v)=v·w+s 用梯度下降进行优化
+//  *
+//  * @param X            训练数据，每一行为一个 k 维向量 v
+//  * @param y            训练数据对应的标量目标值，大小为 N
+//  * @param w            模型参数 w（k 维向量），函数内更新
+//  * @param s            模型偏置 s（标量），由于信息势对 s 不敏感，这里保持不变
+//  * @param sigma        高斯核宽度参数 σ（控制核的平滑度）
+//  * @param learningRate 学习率
+//  * @param iterations   迭代次数
+//  */
+// void gradientDescentInformationPotential(const std::vector<std::vector<double>>& X,
+//                                            const std::vector<double>& y,
+//                                            std::vector<double>& w,
+//                                            double s,
+//                                            double sigma,
+//                                            double learningRate,
+//                                            int iterations)
+// {
+//     int N = X.size();
+//     if (N == 0)
+//         throw std::runtime_error("No training samples provided.");
+//     int k = X[0].size();
+//     if (w.size() != static_cast<size_t>(k))
+//         throw std::runtime_error("Size of w must equal feature dimension k.");
+
+//     // 临时存放每个样本的误差 e_i = v_i·w + s - y_i
+//     std::vector<double> errors(N, 0.0);
+
+//     for (int iter = 0; iter < iterations; iter++) {
+//         // 1. 计算所有样本的误差
+//         for (int i = 0; i < N; i++) {
+//             if (X[i].size() != static_cast<size_t>(k))
+//                 throw std::runtime_error("All feature vectors must have the same length.");
+//             errors[i] = dotProduct(X[i], w) + s - y[i];
+//         }
+
+//         // 2. 计算损失和梯度
+//         double loss = 0.0;
+//         std::vector<double> grad_w(k, 0.0);
+
+//         // 对于每个样本对 (i, j)
+//         for (int i = 0; i < N; i++) {
+//             for (int j = 0; j < N; j++) {
+//                 double diff = errors[i] - errors[j];
+//                 double kernel = std::exp(- (diff * diff) / (4 * sigma * sigma));
+//                 loss -= kernel; // 损失 J = - (1/N^2)*sum_{i,j} kernel, 这里暂不做归一化
+
+//                 // 对 w 的贡献： (e_i - e_j)/(2σ²)*kernel * (v_i - v_j)
+//                 double factor = (diff) / (2 * sigma * sigma) * kernel;
+//                 for (int d = 0; d < k; d++) {
+//                     grad_w[d] += factor * (X[i][d] - X[j][d]);
+//                 }
+//             }
+//         }
+
+//         // 平均归一化
+//         loss /= (N * N);
+//         for (int d = 0; d < k; d++) {
+//             grad_w[d] /= (N * N);
+//         }
+
+//         // 输出当前迭代的损失值（负信息势越小越好）
+//         if ((iter + 1) % 100 == 0)
+//             std::cout << "Iteration " << iter+1 << ", Loss = " << loss << std::endl;
+
+//         // 3. 更新 w (s 对信息势损失梯度为 0，这里不更新 s)
+//         for (int d = 0; d < k; d++) {
+//             w[d] -= learningRate * grad_w[d];
+//         }
+
+//         if(1.0 - loss < 1e-4) {
+//             break;
+//         }
+//         // if(1.0 - loss < 0.05) {
+//         //     learningRate = 0.0001;
+//         // }
+//     }
+// }
 
 
 }  // namespace SZ3
