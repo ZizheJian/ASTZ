@@ -157,7 +157,7 @@ int robustRidgeRegression(const std::vector<std::vector<double>>& X,
 {
     int N = X.size();
     std::cout << "X size: " << N << std::endl;
-    if (N <= 128)
+    if (N <= 4)
         return 1;
         // throw std::runtime_error("No training samples provided.");
     int k = X[0].size();
