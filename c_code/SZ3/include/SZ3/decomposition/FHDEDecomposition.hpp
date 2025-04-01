@@ -598,7 +598,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
     }
 
     void level_dimension_loader() {
-        std::ifstream infile("Uf48.bin.dat.txt"); 
+        std::ifstream infile("Uf48.bin.dat2.txt"); 
         std::string line;
 
         while (std::getline(infile, line)) {
@@ -1534,19 +1534,19 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                                       begin_real[order[2]] * dimension_offsets[order[2]];
                 if(i == end_real[order[0]]) {
                     if(j == end_real[order[1]]) {
-                        std::cout << "corner2" << std::endl;
+                        std::cout << "13 top right corner" << std::endl;
                         predict_error += block_interpolation_2d_13_corner(
                             data, begin_real_offset, begin_real_offset + (end_real[order[2]] - begin_real[order[2]]) * dimension_offsets[order[2]],
                             strides[order[2]] * dimension_offsets[order[2]], strides[order[0]] * dimension_offsets[order[0]], strides[order[1]] * dimension_offsets[order[1]], interp_func, pb);
                     } else {
-                        std::cout << "corner11" << std::endl;
+                        std::cout << "13 right edge" << std::endl;
 
                         predict_error += block_interpolation_2d_13_edge(
                             data, begin_real_offset, begin_real_offset + (end_real[order[2]] - begin_real[order[2]]) * dimension_offsets[order[2]],
                             strides[order[2]] * dimension_offsets[order[2]], strides[order[0]] * dimension_offsets[order[0]], strides[order[1]] * dimension_offsets[order[1]], interp_func, pb);
                     }
                 } else if(j == end_real[order[1]]) {
-                        std::cout << "corner12" << std::endl;
+                        std::cout << "13 top edge" << std::endl;
                     predict_error += block_interpolation_2d_13_edge(
                             data, begin_real_offset, begin_real_offset + (end_real[order[2]] - begin_real[order[2]]) * dimension_offsets[order[2]],
                             strides[order[2]] * dimension_offsets[order[2]], strides[order[1]] * dimension_offsets[order[1]], strides[order[0]] * dimension_offsets[order[0]], interp_func, pb);
@@ -2165,10 +2165,12 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                 // quantize(d - data, *d, interp_linear(*(d - stride), *(d + stride), x0, x1));
                 quantize(d - data, *d, interp_linear_2d_24x(*(d - stride_p1 - stride_p2 - stride), *(d - stride_p1 + stride_p2 - stride), *(d + stride_p1 - stride_p2 - stride), *(d + stride_p1 + stride_p2 - stride),
                                                             *(d - stride_p1 - stride_p2 + stride), *(d - stride_p1 + stride_p2 + stride), *(d + stride_p1 - stride_p2 + stride), *(d + stride_p1 + stride_p2 + stride)));
+                // quantize(d - data, *d, *(d - stride_p1 - stride_p2 - stride));
             }
             if(n % 2 == 0) {
                 T *d = data + begin + (n - 1) * stride;
                 quantize(d - data, *d, interp_linear_2d_22x(*(d - stride_p1 - stride_p2 - stride), *(d - stride_p1 + stride_p2 - stride), *(d + stride_p1 - stride_p2 - stride), *(d + stride_p1 + stride_p2 - stride)));
+                // quantize(d - data, *d, *(d - stride_p1 - stride_p2 - stride));
             }
         } else {
             for (size_t i = 1; i < n - 1; i+=2) {
@@ -2176,10 +2178,13 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                 // quantize(d - data, *d, interp_linear(*(d - stride), *(d + stride), x0, x1));
                 recover(d - data, *d, interp_linear_2d_24x(*(d - stride_p1 - stride_p2 - stride), *(d - stride_p1 + stride_p2 - stride), *(d + stride_p1 - stride_p2 - stride), *(d + stride_p1 + stride_p2 - stride),
                                                             *(d - stride_p1 - stride_p2 + stride), *(d - stride_p1 + stride_p2 + stride), *(d + stride_p1 - stride_p2 + stride), *(d + stride_p1 + stride_p2 + stride)));
+                // recover(d - data, *d, *(d - stride_p1 - stride_p2 - stride));
+
             }
             if(n % 2 == 0) {
                 T *d = data + begin + (n - 1) * stride;
                 recover(d - data, *d, interp_linear_2d_22x(*(d - stride_p1 - stride_p2 - stride), *(d - stride_p1 + stride_p2 - stride), *(d + stride_p1 - stride_p2 - stride), *(d + stride_p1 + stride_p2 - stride)));
+                // recover(d - data, *d, *(d - stride_p1 - stride_p2 - stride));
             }
         }
         
@@ -2209,10 +2214,13 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                 // quantize(d - data, *d, interp_linear(*(d - stride), *(d + stride), x0, x1));
                 quantize(d - data, *d, interp_linear_2d_22x(*(d - stride_p1 + stride_p2 - stride), *(d - stride_p1 - stride_p2 - stride),
                                                             *(d - stride_p1 + stride_p2 + stride), *(d - stride_p1 - stride_p2 + stride)));
+                // quantize(d - data, *d, *(d - stride_p1 - stride_p2 - stride));
+
             }
             if(n % 2 == 0) {
                 T *d = data + begin + (n - 1) * stride;
-                quantize(d - data, *d, interp_linear(*(d - stride_p1 + stride_p2 - stride), *(d + stride_p1 - stride_p2 - stride), 0.5, 0.5));
+                quantize(d - data, *d, interp_linear(*(d - stride_p1 + stride_p2 - stride), *(d - stride_p1 - stride_p2 - stride), 0.5, 0.5));
+                // quantize(d - data, *d, *(d - stride_p1 - stride_p2 - stride));
             }
         } else {
             for (size_t i = 1; i < n - 1; i+=2) {
@@ -2220,10 +2228,14 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                 // quantize(d - data, *d, interp_linear(*(d - stride), *(d + stride), x0, x1));
                 recover(d - data, *d, interp_linear_2d_22x(*(d - stride_p1 + stride_p2 - stride), *(d - stride_p1 - stride_p2 - stride),
                                                             *(d - stride_p1 + stride_p2 + stride), *(d - stride_p1 - stride_p2 + stride)));
+                // recover(d - data, *d, *(d - stride_p1 - stride_p2 - stride));
+
             }
             if(n % 2 == 0) {
                 T *d = data + begin + (n - 1) * stride;
                 recover(d - data, *d, interp_linear(*(d - stride_p1 + stride_p2 - stride), *(d - stride_p1 - stride_p2 - stride), 0.5, 0.5));
+                // recover(d - data, *d, *(d - stride_p1 - stride_p2 - stride));
+
             }
         }
         
