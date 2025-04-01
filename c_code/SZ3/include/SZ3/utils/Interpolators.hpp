@@ -148,11 +148,22 @@ inline T interp_pchip(T a, T b, T c, T d) {
 //     for()
 //     return (a * c1 + b * c2);
 // }
+
+template <class T>
+inline T interp_linear_3(T a1, T a2, T a3, float w1, float w2, float w3) {
+    return a1 * w1 + a2 * w2 + a3 * w3;
+}
+
 template <class T>
 inline T interp_linear_4(T a1, T a2, T a3, T a4, float w1, float w2, float w3, float w4) {
     return a1 * w1 + a2 * w2 + a3 * w3 + a4 * w4;
 }
 
+template <class T>
+inline T interp_linear_6(T a1, T a2, T a3, T a4, T a5, T a6,
+                         float w1, float w2, float w3, float w4, float w5, float w6) {
+    return a1 * w1 + a2 * w2 + a3 * w3 + a4 * w4 + a5 * w5 + a6 * w6;
+}
 
 
 }  // namespace SZ3
