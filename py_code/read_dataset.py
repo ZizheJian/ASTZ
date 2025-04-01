@@ -7,5 +7,6 @@ def read_dataset(args:args_c):
     args.data=args.data.view(args.data_shape)
     args.data_min=args.data.min()
     args.data_max=args.data.max()
-    args.abs_eb=((args.data_max-args.data_min)*args.rel_eb).item()
-    args.parameter_eb=2*args.rel_eb*args.parameter_relative_eb#假设参数的范围是[-1,1]
+    args.data=2*(args.data-args.data_min)/(args.data_max-args.data_min)-1
+    args.abs_eb=2*args.rel_eb
+    args.parameter_eb=2*args.rel_eb*args.parameter_relative_eb

@@ -72,7 +72,7 @@ project_directory_path=os.path.dirname(starter_file_path)
 
 if not search_threshold:
     if not doughnut:
-        call_generate_topology_list(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
+        # call_generate_topology_list(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
         call_py_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
         # call_c_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
     else:

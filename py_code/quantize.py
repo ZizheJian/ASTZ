@@ -33,3 +33,11 @@ def quantize_parameter(parameter:Tensor,args:args_c)->Tensor:
     parameter[mask_positive]=torch.ceil((parameter[mask_positive]-args.parameter_eb)/(2*args.parameter_eb))
     parameter[mask_negative]=torch.floor((parameter[mask_negative]+args.parameter_eb)/(2*args.parameter_eb))
     return parameter.int()
+
+def quantize_parameter_with_baseline(parameter:Tensor,baseline:Tensor,args:args_c)->Tensor:
+    delta=parameter-baseline
+    mask_positive=(delta>=0)
+    mask_negative=(~mask_positive)
+    parameter[mask_positive]=torch.ceil((delta[mask_positive]-args.parameter_eb)/(2*args.parameter_eb))
+    parameter[mask_negative]=torch.floor((delta[mask_negative]+args.parameter_eb)/(2*args.parameter_eb))
+    return parameter.int(),baseline+args.parameter_eb*parameter*2

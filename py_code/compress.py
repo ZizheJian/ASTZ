@@ -1,5 +1,4 @@
 import torch,math,copy,subprocess,os
-from torch.nn import functional as F
 from args import args_c
 from plot_py import plot_c
 from read_dataset import read_dataset
@@ -39,8 +38,11 @@ else:
         args.data_residual_decompressed=apply_topology(args,topology_manager,part_name="residual")
     args.data=data_backup
     args.data_decompressed=add_average_and_residual_data(args)
+args.data=args.data_min+(args.data+1)*(args.data_max-args.data_min)/2
+args.data_decompressed=args.data_min+(args.data_decompressed+1)*(args.data_max-args.data_min)/2
 max_err=(args.data-args.data_decompressed).abs().max().item()
 print(f"max_err={max_err}",flush=True)
+print(f"data_max-data_min={args.data_max-args.data_min}",flush=True)
 mse=((args.data-args.data_decompressed)**2).mean().item()
 psnr=10*math.log10((args.data_max-args.data_min)**2/mse)
 print(f"psnr= {psnr:.6f}",flush=True)
