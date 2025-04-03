@@ -15,6 +15,12 @@ set(CMAKE_INSTALL_LIBDIR "${CMAKE_INSTALL_PREFIX}/lib")
 message(STATUS "CMAKE_INSTALL_INCLUDEDIR: ${CMAKE_INSTALL_INCLUDEDIR}")
 message(STATUS "CMAKE_INSTALL_LIBDIR: ${CMAKE_INSTALL_LIBDIR}")
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+
+configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/version.hpp.in
+        ${CMAKE_CURRENT_SOURCE_DIR}/version.hpp)
+
 add_executable(fhde fhde.cpp)
 add_subdirectory(zstd)
 target_link_libraries(fhde PRIVATE zstd)

@@ -20,21 +20,21 @@ class Lossless_zstd : public concepts::LosslessInterface {
     * Therefore, we need to check if the dst buffer (dstCap) is large enough for zstd
     */
     size_t compress(const uchar *src, size_t srcLen, uchar *dst, size_t dstCap) override {
-        // write(srcLen, dst);
-        // if (dstCap < ZSTD_compressBound(srcLen)) {
-        //     fprintf(stderr, "%s\n", FHDE_ERROR_COMP_BUFFER_NOT_LARGE_ENOUGH);
-        //     throw std::length_error(FHDE_ERROR_COMP_BUFFER_NOT_LARGE_ENOUGH);
-        // }
-        // size_t dstLen = ZSTD_compress(dst, dstCap, src, srcLen, compression_level);
-        // return dstLen + sizeof(size_t);
+        write(srcLen, dst);
+        if (dstCap < ZSTD_compressBound(srcLen)) {
+            fprintf(stderr, "%s\n", FHDE_ERROR_COMP_BUFFER_NOT_LARGE_ENOUGH);
+            throw std::length_error(FHDE_ERROR_COMP_BUFFER_NOT_LARGE_ENOUGH);
+        }
+        size_t dstLen = ZSTD_compress(dst, dstCap, src, srcLen, compression_level);
+        return dstLen + sizeof(size_t);
     }
 
     size_t decompress(const uchar *src, const size_t srcLen, uchar *&dst, size_t &dstLen) override {
-        // read(dstLen, src);
-        // if (dst == nullptr) {
-        //     dst = static_cast<uchar *>(malloc(dstLen));
-        // }
-        // return ZSTD_decompress(dst, dstLen, src, srcLen - sizeof(dstLen));
+        read(dstLen, src);
+        if (dst == nullptr) {
+            dst = static_cast<uchar *>(malloc(dstLen));
+        }
+        return ZSTD_decompress(dst, dstLen, src, srcLen - sizeof(dstLen));
     }
 
    private:

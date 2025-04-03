@@ -14,12 +14,17 @@ def call_py_compress(project_directory_path:str,data_path:str,data_shape:List[in
     command+=f"-f -i {data_path} -z {os.path.join(data_path,'.fhde')} -o {os.path.join(data_path,'.fhde.bin')} "
     command+=f"-E REL {rel_eb} -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M {method} {FHDE_threshold} "
     print(command)
+    print("f1")
     process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     output_lines=[]
+    print("f2")
+    
     for line in iter(process.stdout.readline,""):
         print(line,end="",flush=True)
         output_lines.append(line)
     output=("".join(output_lines)).strip()
+    print("f3")
+
     return output
 
 def call_c_compress(project_directory_path:str,data_path:str,data_shape:List[int],rel_eb:float,method:str,FHDE_threshold:int):
@@ -30,10 +35,11 @@ def call_c_compress(project_directory_path:str,data_path:str,data_shape:List[int
     build_path=os.getcwd()
     subprocess.run(f"cmake -DCMAKE_INSTALL_PREFIX:PATH={os.path.join(project_directory_path,'c_code','install')} ..",cwd=build_path,shell=True,encoding="utf-8")
     subprocess.run("make",cwd=build_path,shell=True,encoding="utf-8")
-    subprocess.run("make install",cwd=build_path,shell=True,encoding="utf-8")
+    print(build_path)
+    # subprocess.run("make install",cwd=build_path,shell=True,encoding="utf-8")
     os.chdir(project_directory_path)
-    command=f"fhde -f -i {data_path} -z {data_path+'.fhde'} -o {data_path+'.fhde.bin'} "
-    command+=f"-t {os.path.join(project_directory_path,'topology_list',data_name+'.txt')} -E REL {rel_eb} -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M {method} {FHDE_threshold} "
+    command=f"{build_path +'/fhde'} -f -i {data_path} -o {data_path+'.fhde.out'} "
+    command+=f"-3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M REL {rel_eb} -a"
     print(command)
     process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     output_lines=[]
@@ -55,7 +61,7 @@ def call_c_compress(project_directory_path:str,data_path:str,data_shape:List[int
 # data_shape:List[str]=[256,256,256]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/NYX/baryon_density_cut.f32"
 data_shape:List[str]=[100,500,500]
-data_path:str="/anvil/projects/x-cis240192/x-zjian1/ISABEL/U/Uf48.bin"
+data_path:str="/home/zyang/Desktop/datasets/Uf48.bin.dat"
 
 rel_eb:float=1e-3
 doughnut:bool=False
@@ -73,8 +79,8 @@ project_directory_path=os.path.dirname(starter_file_path)
 if not search_threshold:
     if not doughnut:
         # call_generate_topology_list(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
-        call_py_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
-        # call_c_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
+        # call_py_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
+        call_c_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
     else:
         raise NotImplementedError
 else:

@@ -9,29 +9,41 @@
 // #include "SZ3/def.hpp"
 
 namespace FHDE{
-template <class T,uint N>
-size_t FHDE_compress_impl(Config &conf,const T *data,uchar *cmpData,size_t cmpCap)
-{
-    return FHDE_compress_dispatcher<T,N>(conf,data,cmpData,cmpCap);
-}
-
-// template <class T,uint N>
-// void SZ_decompress_impl(Config &conf,const uchar *cmpData,size_t cmpSize,T *decData) {
+template <class T, uint N>
+size_t FHDE_compress_impl(Config &conf, const T *data, uchar *cmpData, size_t cmpCap) {
 // #ifndef _OPENMP
 //     conf.openmp = false;
 // #endif
 //     if (conf.openmp) {
-//         SZ_decompress_OMP<T,N>(conf,cmpData,cmpSize,decData);
+//         return FHDE_compress_OMP<T, N>(conf, data, cmpData, cmpCap);
 //     } else {
-//         SZ_decompress_dispatcher<T,N>(conf,cmpData,cmpSize,decData);
-//     }
-// }
+        return FHDE_compress_dispatcher<T, N>(conf, data, cmpData, cmpCap);
+    // }
+}
 
+template <class T, uint N>
+void FHDE_decompress_impl(Config &conf, const uchar *cmpData, size_t cmpSize, T *decData) {
+// #ifndef _OPENMP
+//     conf.openmp = false;
+// #endif
+//     if (conf.openmp) {
+//         FHDE_decompress_OMP<T, N>(conf, cmpData, cmpSize, decData);
+//     } else {
+        FHDE_decompress_dispatcher<T, N>(conf, cmpData, cmpSize, decData);
+    // }
+}
 
 template<class T>
-size_t FHDE_compress_size_bound(const Config &conf)
-{
-    return conf.size_est() + ZSTD_compressBound(conf.num * sizeof(T));
+size_t FHDE_compress_size_bound(const Config &conf) {
+    bool omp = conf.openmp;
+// #ifndef _OPENMP
+//     omp = false;
+// #endif
+//     if (omp) {
+//         return SZ_compress_size_bound_omp<T>(conf);
+//     } else {
+        return conf.size_est() + ZSTD_compressBound(conf.num * sizeof(T));
+    // }
 }
 
 }

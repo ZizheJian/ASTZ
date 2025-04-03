@@ -1,4 +1,4 @@
-#ifndef _FHED_FILE_UTIL
+#ifndef _FHDE_FILE_UTIL
 #define _FHDE_FILE_UTIL
 
 #include <cassert>
@@ -38,22 +38,22 @@ void readfile(const char *file,const size_t num,Type *data)
  * @param num
  * @return
  */
-// template <typename Type>
-// std::unique_ptr<Type[]> readfile(const char *file,size_t &num) {
-//     std::ifstream fin(file,std::ios::binary);
-//     if (!fin) {
-//         std::cerr << " Error,Couldn't find the file: " << file << std::endl;
-//         throw std::invalid_argument("Couldn't find the file");
-//     }
-//     fin.seekg(0,std::ios::end);
-//     num = fin.tellg() / sizeof(Type);
-//     fin.seekg(0,std::ios::beg);
-//     //        auto data = SZ3::compat::make_unique<Type[]>(num_elements);
-//     auto data = std::make_unique<Type[]>(num);
-//     fin.read(reinterpret_cast<char *>(&data[0]),num*sizeof(Type));
-//     fin.close();
-//     return data;
-// }
+template <typename Type>
+std::unique_ptr<Type[]> readfile(const char *file,size_t &num) {
+    std::ifstream fin(file,std::ios::binary);
+    if (!fin) {
+        std::cerr << " Error,Couldn't find the file: " << file << std::endl;
+        throw std::invalid_argument("Couldn't find the file");
+    }
+    fin.seekg(0,std::ios::end);
+    num = fin.tellg() / sizeof(Type);
+    fin.seekg(0,std::ios::beg);
+    //        auto data = SZ3::compat::make_unique<Type[]>(num_elements);
+    auto data = std::make_unique<Type[]>(num);
+    fin.read(reinterpret_cast<char *>(&data[0]),num*sizeof(Type));
+    fin.close();
+    return data;
+}
 
 template <typename Type>
 void writefile(const char *file,Type *data,size_t num_elements)
@@ -63,19 +63,19 @@ void writefile(const char *file,Type *data,size_t num_elements)
     fout.close();
 }
 
-// template <typename Type>
-// void writeTextFile(const char *file,Type *data,size_t num_elements) {
-//     std::ofstream fout(file);
-//     if (fout.is_open()) {
-//         for (size_t i = 0; i < num_elements; i++) {
-//             fout << data[i] << std::endl;
-//         }
-//         fout.close();
-//     } else {
-//         std::cerr << "Error,unable to open file for output: " << file << std::endl;
-//         throw std::invalid_argument("Couldn't open the file for output");
-//     }
-// }
+template <typename Type>
+void writeTextFile(const char *file,Type *data,size_t num_elements) {
+    std::ofstream fout(file);
+    if (fout.is_open()) {
+        for (size_t i = 0; i < num_elements; i++) {
+            fout << data[i] << std::endl;
+        }
+        fout.close();
+    } else {
+        std::cerr << "Error,unable to open file for output: " << file << std::endl;
+        throw std::invalid_argument("Couldn't open the file for output");
+    }
+}
 
 }
 

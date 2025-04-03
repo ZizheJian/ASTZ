@@ -23,15 +23,30 @@
 #include "FHDEDecomposition.hpp"
 #include "LinearQuantizer.hpp"
 #include "HuffmanEncoder.hpp"
+#include <iostream>
+namespace FHDE {
+template <class T, uint N>
+size_t FHDE_compress_Algo(Config &conf, T *data, uchar *cmpData, size_t cmpCap) {
+    assert(N == conf.N);
+    assert(conf.cmprAlgo == ALGO_FHDE);
+    calAbsErrorBound(conf, data);
 
-namespace FHDE{
-template <class T,uint N>
-size_t FHDE_compress(Config &conf,T *data,uchar *cmpData,size_t cmpCap)
-{
-    assert(N==conf.N);
-    calAbsErrorBound(conf,data);
-    auto fhde=make_compressor_fhde_generic<T,N>(make_decomposition_FHDE<T,N>(conf,LinearQuantizer<T>(conf.abs_eb,conf.qb_cnt/2)),HuffmanEncoder<int>(),Lossless_zstd());
-    return fhde->compress(conf,data,cmpData,cmpCap);
+    auto fhde = make_compressor_fhde_generic<T, N>(
+        make_decomposition_FHDE<T, N>(conf, LinearQuantizer<T>(conf.absErrorBound, conf.quantbinCnt / 2)),
+        HuffmanEncoder<int>(), Lossless_zstd());
+    std::cout << "Algo: FHDE" << std::endl;
+    return fhde->compress(conf, data, cmpData, cmpCap);
+    //        return cmpData;
+}
+
+template <class T, uint N>
+void FHDE_decompress_Algo(const Config &conf, const uchar *cmpData, size_t cmpSize, T *decData) {
+    assert(conf.cmprAlgo == ALGO_FHDE);
+    auto cmpDataPos = cmpData;
+    auto fhde = make_compressor_fhde_generic<T, N>(
+        make_decomposition_FHDE<T, N>(conf, LinearQuantizer<T>(conf.absErrorBound, conf.quantbinCnt / 2)),
+        HuffmanEncoder<int>(), Lossless_zstd());
+    fhde->decompress(conf, cmpDataPos, cmpSize, decData);
 }
 
 // template <class T,uint N>
