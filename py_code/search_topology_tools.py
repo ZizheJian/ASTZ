@@ -61,11 +61,9 @@ def generate_mat_A_B(cur_block_ext:Tensor,tgt_block_cropped:Tensor,mask_block_cr
         mat_A[:,ch_id]=cur_block_ext[:,j:1+j,1:-1,1:-1,1:-1][mask_block_cropped[:,1::2]]
         ch_id+=1
     mat_B=tgt_block_cropped[mask_block_cropped[:,1::2]]
-    # a=1/args.parameter_relative_eb
     a=1e-5
     mat_A=torch.cat([mat_A,torch.eye(mat_A.shape[1])*a],dim=0)
-    mat_B=torch.cat([mat_B,torch.ones(param_num-args.pos_ch)/(param_num-args.pos_ch),torch.zeros(args.pos_ch)],dim=0)
-    # print(mat_A.shape,mat_B.shape)
+    mat_B=torch.cat([mat_B,torch.ones(param_num-args.pos_ch)*a/(param_num-args.pos_ch),torch.zeros(args.pos_ch)],dim=0)
     return mat_A,mat_B
 
 def decode_conv(mat_X:Tensor,mask_core:Tensor,args:args_c)->Tensor:
@@ -127,6 +125,7 @@ def search_topology(args:args_c,topology_manager:topology_manager_c,part_name:st
             cur_data=torch.zeros_like(tgt_data)
             cur_data[mask[:,0:1]]=tgt_data[mask[:,0:1]]
             rmsqb=0
+            rmsqb_num=0
             for block_id,cur_block,tgt_block,mask_block in blockify(cur_data,tgt_data,mask,args,padding=1):
                 cur_block_ext=generate_cur_block_ext(cur_block,mask_block,args)
                 tgt_block_cropped=tgt_block[:,:,1:-1,1:-1,1:-1]
@@ -159,14 +158,17 @@ def search_topology(args:args_c,topology_manager:topology_manager_c,part_name:st
                         mat_X=lstsq_result.solution
                         mat_X_bin,mat_X=quantize_parameter_with_baseline(mat_X,mat_X_baseline,args)
                         err=mat_A_filtered@mat_X-mat_B_filtered
-                        loss=(err**2).sum()/(valid_equations.sum().item()+param_num)
+                        rmsqb_block_num=valid_equations.sum().item()+param_num
+                        loss=(err**2).sum()/rmsqb_block_num
                     else:
                         mat_X=mat_X_baseline
                         err=mat_A@mat_X-mat_B
-                        loss=(err**2).sum()/(tgt_num+param_num)
+                        rmsqb_block_num=tgt_num+param_num
+                        loss=(err**2).sum()/rmsqb_block_num
                     rmsqb_block=(loss**0.5)/(2*args.abs_eb)
-                    rmsqb+=(rmsqb_block**2)*(tgt_num+param_num)
-            rmsqb=(rmsqb/(mask[:,1::2].sum().item()))**0.5
+                    rmsqb+=(rmsqb_block**2)*rmsqb_block_num
+                    rmsqb_num+=rmsqb_block_num
+            rmsqb=(rmsqb/rmsqb_num)**0.5
             print(f"topology={topology_id}, rmsqb={rmsqb}",flush=True)
             if best_rmsqb>rmsqb:
                 best_rmsqb=rmsqb
@@ -238,8 +240,6 @@ def apply_topology(args:args_c,topology_manager:topology_manager_c,part_name:str
         abs_eb_backup=args.abs_eb
         args.abs_eb*=(0.95**i)
         for block_id,cur_block,tgt_block,mask_block in blockify(cur_data,tgt_data,mask,args,padding=1):
-            print(f"block_id={block_id}",flush=True)
-            print(tgt_data.shape,flush=True)
             cur_block_ext=generate_cur_block_ext(cur_block,mask_block,args)
             cur_block_cropped=cur_block_ext[:,0:1,1:-1,1:-1,1:-1]
             tgt_block_cropped=tgt_block[:,:,1:-1,1:-1,1:-1]
@@ -269,7 +269,7 @@ def apply_topology(args:args_c,topology_manager:topology_manager_c,part_name:str
                     lstsq_result=torch.linalg.lstsq(mat_A_filtered,mat_B_filtered,driver="gels")
                     mat_X=lstsq_result.solution
                 else:
-                    mat_X=torch.cat((torch.ones(param_num-args.pos_ch)/(param_num-args.pos_ch),torch.zeros(args.pos_ch)))
+                    mat_X=mat_X_baseline
                 mat_X_bin,mat_X=quantize_parameter_with_baseline(mat_X,mat_X_baseline,args)
                 args.parameter.append(mat_X_bin)
                 conv=decode_conv(mat_X,mask_core,args)
@@ -283,10 +283,6 @@ def apply_topology(args:args_c,topology_manager:topology_manager_c,part_name:str
             cur_data[:,:,block_id[0]:block_id[0]+args.model_block_step[0],
                         block_id[1]:block_id[1]+args.model_block_step[1],
                         block_id[2]:block_id[2]+args.model_block_step[2]]=cur_block_cropped
-            print(mat_X_baseline,flush=True)
-            print(mat_X,flush=True)
-            print(mat_X_bin,flush=True)
-            exit()
         mask[:,0:1]+=mask[:,1:2]
         print(tgt_data.shape,flush=True)
         args.abs_eb=abs_eb_backup
