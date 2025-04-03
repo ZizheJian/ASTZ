@@ -156,8 +156,9 @@ int robustRidgeRegression(const std::vector<std::vector<double>>& X,
                                           double threshold)
 {
     int N = X.size();
+    int N_threshold = 64;
     std::cout << "X size: " << N << std::endl;
-    if (N <= 4)
+    if (N < N_threshold)
         return 1;
         // throw std::runtime_error("No training samples provided.");
     int k = X[0].size();
@@ -179,7 +180,7 @@ int robustRidgeRegression(const std::vector<std::vector<double>>& X,
             y_filtered.push_back(y[i]);
         }
     }
-    if (X_filtered.empty())
+    if (X_filtered.empty() || X_filtered.size() < N_threshold)
         return 1;
         // throw std::runtime_error("No samples remain after filtering with the given threshold.");
     std::cout << "X_filtered size: " << X_filtered.size() << std::endl;
