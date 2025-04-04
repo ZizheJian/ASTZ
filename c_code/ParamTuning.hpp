@@ -209,15 +209,16 @@ void normalize(std::vector<T>& arr, double& min_val, double& max_val) {
         std::fill(arr.begin(), arr.end(), 0);
         return;
     }
-    // 归一化每个元素
+    // 归一化每个元素到 [-1, 1] 范围
     for (size_t i = 0; i < arr.size(); ++i) {
-        arr[i] = (arr[i] - min_val) / (max_val - min_val);
+        arr[i] = (arr[i] - min_val) * 2 / (max_val - min_val) - 1;
     }
 }
+
 template <class T>
 void denormalize(std::vector<T>& normalized, double min_val, double max_val) {
     for (size_t i = 0; i < normalized.size(); ++i) {
-        normalized[i] = normalized[i] * (max_val - min_val) + min_val;
+        normalized[i] = (normalized[i] + 1) / 2 * (max_val - min_val) + min_val;
     }
 }
 

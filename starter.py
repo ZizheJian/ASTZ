@@ -45,7 +45,7 @@ def call_c_compress(project_directory_path:str,data_path:str,data_shape:List[int
     return output
 
 
-data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_datasets/APSU_TestData_004/APSU_TestData_004_cut.bin"
+# data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_datasets/APSU_TestData_004/APSU_TestData_004_cut.bin"
 data_shape:List[int]=[614,312,363]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/9-ID_CSSI_data/benchmarkdata/Avg_L0470_Double_exp_elong_siemens_1p00sampit_0p05inplane_patch1_of1_part0_001_cut.bin"
 # data_shape:List[int]=[150,453,390]
@@ -59,6 +59,8 @@ data_shape:List[int]=[614,312,363]
 # data_shape:List[str]=[256,256,256]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/ISABEL/U/Uf48.bin"
 # data_shape:List[str]=[100,500,500]
+data_path:str="./APSU_TestData_004_cut.bin"
+# data_path:str="./Uf48.bin"
 
 
 rel_eb:float=1e-3
