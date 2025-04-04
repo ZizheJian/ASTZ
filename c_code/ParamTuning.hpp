@@ -16,7 +16,7 @@
 #include <algorithm> // std::swap
 #include <iostream>
 
-#include "tools/eigen/Eigen/Dense"
+#include "tools/Eigen/Eigen/Dense"
 // 如有需要可启用 OpenMP
 // #ifdef _OPENMP
 #include <omp.h>
