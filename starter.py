@@ -14,16 +14,13 @@ def call_py_compress(project_directory_path:str,data_path:str,data_shape:List[in
     command+=f"-f -i {data_path} -z {os.path.join(data_path,'.fhde')} -o {os.path.join(data_path,'.fhde.bin')} "
     command+=f"-E REL {rel_eb} -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M {method} {FHDE_threshold} "
     print(command)
-    print("f1")
     process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     output_lines=[]
-    print("f2")
     
     for line in iter(process.stdout.readline,""):
         print(line,end="",flush=True)
         output_lines.append(line)
     output=("".join(output_lines)).strip()
-    print("f3")
 
     return output
 
@@ -61,14 +58,14 @@ def call_c_compress(project_directory_path:str,data_path:str,data_shape:List[int
 # data_shape:List[str]=[256,256,256]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/NYX/baryon_density_cut.f32"
 data_shape:List[str]=[100,500,500]
-data_path:str="/home/zyang/Desktop/datasets/Uf48.bin.dat"
+data_path:str="/anvil/projects/x-cis240192/x-zjian1/ISABEL/U/Uf48.bin"
 
 rel_eb:float=1e-3
 doughnut:bool=False
 method:str="FHDE"
 method_average:str="FHDE"
 method_residual:str="FHDE"
-FHDE_threshold=7
+FHDE_threshold=3
 FHDE_threshold_average=FHDE_threshold
 FHDE_threshold_residual=FHDE_threshold
 search_threshold:bool=False
@@ -79,8 +76,8 @@ project_directory_path=os.path.dirname(starter_file_path)
 if not search_threshold:
     if not doughnut:
         # call_generate_topology_list(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
-        # call_py_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
-        call_c_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
+        call_py_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
+        # call_c_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
     else:
         raise NotImplementedError
 else:
