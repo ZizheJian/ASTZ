@@ -9,6 +9,8 @@
 #include "Lossless.hpp"
 #include "MemoryUtil.hpp"
 #include <memory>
+#include <fstream>
+#include <map>
 // #include "SZ3/def.hpp"
 // #include "SZ3/utils/Config.hpp"
 // #include "SZ3/utils/FileUtil.hpp"
@@ -39,7 +41,26 @@ class FHDEGenericCompressor : public concepts::CompressorInterface<T> {
 
     size_t compress(const Config &conf,T *data,uchar *cmpData,size_t cmpCap) override {
         std::vector<int> quant_inds = decomposition.compress(conf,data);
+        {
+            std::vector<int> bins = quant_inds; // 示例数据
+            std::map<int, int> frequency;
+            for (int num : bins) {
+                frequency[num]++;
+            }
+            std::ofstream outfile("bins_frequency.txt");
+            if (!outfile) {
+                std::cerr << "cant open file xxx！" << std::endl;
+                return 1;
+            }
 
+            // 如果需要按数字排序输出，可以考虑使用 std::map
+            for (const auto& p : frequency) {
+                outfile << p.first << ": " << p.second << std::endl;
+            }
+
+            outfile.close();
+            std::cout << "written to bins_frequency.txt" << std::endl;
+        }
         if (decomposition.get_out_range().first != 0) {
             fprintf(stderr,"The output range of the decomposition must start from 0 for this compressor\n");
             throw std::runtime_error("The output range of the decomposition must start from 0 for this compressor");
