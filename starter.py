@@ -58,7 +58,8 @@ def call_c_compress(project_directory_path:str,data_path:str,data_shape:List[int
 # data_shape:List[str]=[256,256,256]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/NYX/baryon_density_cut.f32"
 data_shape:List[str]=[100,500,500]
-data_path:str="./Uf48.bin"
+data_path:str="/anvil/projects/x-cis240192/x-zjian1/ISABEL/U/Uf48.bin"
+
 
 rel_eb:float=1e-3
 doughnut:bool=False
@@ -76,8 +77,8 @@ project_directory_path=os.path.dirname(starter_file_path)
 if not search_threshold:
     if not doughnut:
         # call_generate_topology_list(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
-        # call_py_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
-        call_c_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
+        call_py_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
+        # call_c_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
     else:
         raise NotImplementedError
 else:
