@@ -91,4 +91,4 @@ class args_c:
         self.parameter_relative_eb=1e-2
         self.FHDE_threshold_average=5
         self.FHDE_threshold_residual=5
-        self.pivot_ratio=2**15
+        self.pivot_ratio=2**13

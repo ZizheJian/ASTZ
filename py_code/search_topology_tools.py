@@ -161,7 +161,7 @@ def search_topology(args:args_c,topology_manager:topology_manager_c,part_name:st
                         rmsqb_block_num=valid_equations.sum().item()+param_num
                         loss=(err**2).sum()/rmsqb_block_num
                     else:
-                        mat_X=mat_X_baseline
+                        mat_X[:]=mat_X_baseline
                         err=mat_A@mat_X-mat_B
                         rmsqb_block_num=tgt_num+param_num
                         loss=(err**2).sum()/rmsqb_block_num
@@ -269,12 +269,13 @@ def apply_topology(args:args_c,topology_manager:topology_manager_c,part_name:str
                     lstsq_result=torch.linalg.lstsq(mat_A_filtered,mat_B_filtered,driver="gels")
                     mat_X=lstsq_result.solution
                 else:
-                    mat_X=mat_X_baseline
+                    mat_X[:]=mat_X_baseline
                 mat_X_bin,mat_X=quantize_parameter_with_baseline(mat_X,mat_X_baseline,args)
                 args.parameter.append(mat_X_bin)
                 conv=decode_conv(mat_X,mask_core,args)
                 h=F.conv3d(cur_block_ext,conv)
             quantize(tgt_block_cropped-h,mask_block_cropped[:,1::2],args.abs_eb,tgt_num,args)
+
             cur_block_cropped[mask_block_cropped[:,1::2]]=h[mask_block_cropped[:,1::2]]+args.qb[args.qb_begin:args.qb_end]*2*args.abs_eb
             irr_mask=(args.qb[args.qb_begin:args.qb_end].abs()>32767)
             args.pivot[args.pivot_num:args.pivot_num+irr_mask.sum().item()]=tgt_block_cropped[mask_block_cropped[:,1::2]][irr_mask]
