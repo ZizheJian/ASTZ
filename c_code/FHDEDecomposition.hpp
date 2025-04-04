@@ -43,13 +43,8 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
         state S = state::Z;
 
         for (uint level = interpolation_level - 1; level >= 0 && level < interpolation_level; level--) {
-            // if (level >= 3) {
-            //     quantizer.set_eb(eb * eb_ratio);
-            // } else {
-            //     quantizer.set_eb(eb);
-            // }
-            // if(interpolation_level - 1 - level > 9) {
-                quantizer.set_eb(eb * pow(0.95, level));
+           
+            quantizer.set_eb(eb * pow(0.95, level));
             // } else {
             //     quantizer.set_eb(0);
             // }
@@ -312,7 +307,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
         normalize(arr, norm_min, norm_max);
         data = arr.data();
         
-        bool fixed_param_mode = false;
+        bool fixed_param_mode = true; // 
         std::copy_n(conf.dims.begin(), N, global_dimensions.begin());
         blocksize = 32;
         // blocksize = 65536;
@@ -348,7 +343,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
             //     quantizer.set_eb(eb);
             // }
             // if(interpolation_level - 1 - level > 9) {
-                quantizer.set_eb(eb * pow(0.95, level));
+            quantizer.set_eb(eb * pow(0.95, level));
             // } else {
             //     quantizer.set_eb(0);
             // }
@@ -511,17 +506,8 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                     {   // train
                         int k = 2;
                         std::vector<double> w = {0.5, 0.5, 0, 0, 0, 0};
-                        // double s = 0.0; // 由于信息势对 s 不敏感，这里 s 保持不变
-                        // // 设置参数
-                        // double sigma = 1.0;         // 核宽度
-                        // double learningRate = 0.001;   // 学习率
-                        // int iterations = 1000;        // 迭代次数
                         if(!fixed_param_mode && x_s.size() && !robustRidgeRegression(x_s, y_s, w, lambda, filter_threshold * eb * pow(0.95, level))) {
-                            // gradientDescentInformationPotential(x_s, y_s, w, s, sigma, learningRate, iterations);
-                            // robustRidgeRegression(x_s, y_s, w, lambda, 7 * eb * pow(0.95, level));
                             params = w;
-                            // std::cout << "param = " << params[0] << ", " << params[1] << "; " << params[2] << " " << params[3] << " " << params[4] << " " << params[5] << " cmp coeff=" << coeff_idx << std::endl;
-                            // std::cout << "param0 = " << params[0] << " p1 = " << params[1] << " cmp coeff=" << coeff_idx << std::endl;
 
                         } else {
                             params = {0.5, 0.5, 0, 0, 0, 0};

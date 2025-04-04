@@ -58,8 +58,15 @@ class FHDEGenericCompressor : public concepts::CompressorInterface<T> {
                 outfile << p.first << ": " << p.second << std::endl;
             }
 
+
             outfile.close();
             std::cout << "written to bins_frequency.txt" << std::endl;
+        }
+        {
+            std::ofstream ofs("./bins.bin", std::ios::binary);
+            // ofs.write(reinterpret_cast<const char*>(&quant_inds.size()), sizeof(quant_inds.size()));
+            ofs.write(reinterpret_cast<const char*>(quant_inds.data()), quant_inds.size() * sizeof(int));
+            ofs.close();
         }
         if (decomposition.get_out_range().first != 0) {
             fprintf(stderr,"The output range of the decomposition must start from 0 for this compressor\n");
