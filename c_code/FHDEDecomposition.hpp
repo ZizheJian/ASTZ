@@ -282,7 +282,9 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
 
         quantizer.postdecompress_data();
         //            timer.stop("Interpolation Decompress");
-
+        std::vector<T> arr(dec_data, dec_data + conf.num);
+        denormalize(arr, norm_min, norm_max);
+        for(int i = 0; i < conf.num; i++) dec_data[i] = arr[i];
         return dec_data;
     }
 
@@ -306,7 +308,11 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
     }
     // compress given the error bound
     std::vector<int> compress(const Config &conf, T *data) override {
-        bool fixed_param_mode = true;
+        std::vector<T> arr(data, data + conf.num);
+        normalize(arr, norm_min, norm_max);
+        data = arr.data();
+        
+        bool fixed_param_mode = false;
         std::copy_n(conf.dims.begin(), N, global_dimensions.begin());
         blocksize = 32;
         // blocksize = 65536;
@@ -315,9 +321,11 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
 
         init();
 
+
         std::vector<int> quant_inds_vec(num_elements);
         quant_inds = quant_inds_vec.data();
 
+        quantizer.set_eb(quantizer.get_eb() / (norm_max - norm_min));
         double eb = quantizer.get_eb();
         // std::cout << "eb = " << eb << std::endl;
         
@@ -744,6 +752,8 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
         write(interpolator_id, c);
         write(direction_sequence_id, c);
 
+        write(norm_min, c);
+        write(norm_max, c);
         write(coeff_list.size(), c);
         for(int i = 0; i < coeff_list.size(); i++) {
             write(coeff_list[i].size(), c);
@@ -758,6 +768,8 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
         read(interpolator_id, c, remaining_length);
         read(direction_sequence_id, c, remaining_length);
 
+        read(norm_min, c);
+        read(norm_max, c);
         size_t coeff_size = 0;
         read(coeff_size, c, remaining_length);
         coeff_list.resize(coeff_size);
@@ -866,6 +878,112 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
 
     inline void recover(size_t idx, T &d, T pred) { d = quantizer.recover(pred, quant_inds[quant_index++]); }
     
+    double block_interpolation_1d_mid(T *data, size_t begin, size_t end, size_t stride, const std::string &interp_func,
+                                  const PredictorBehavior pb) {
+        
+        size_t n = (end - begin) / stride + 1;
+        // { // Log
+        //     std::cout << "[Log] begin: " << begin << ", end: " << end << ", stride: " << stride << " n=" << n<< std::endl;
+        // }
+        if (n <= 1) {
+            return 0;
+        }
+        double predict_error = 0;
+        // calc_coeff(data, begin, end, stride);
+        // coeff_list.push_back(std::vector<_Float32>{0.5,0.5});
+
+        
+        if (pb == PB_predict_overwrite) {
+            // float x0 = static_cast<float>(coeff_list.back()[0]);
+            // float x1 = static_cast<float>(coeff_list.back()[1]);
+            // std::cout << x0 << "   " << x1 << std::endl;
+            // std::cout << "a1" << std::endl;
+
+            for (size_t i = 1; i < n; i += 2) {
+                // std::cout << "a2" << std::endl;
+
+                T *d = data + begin + i * stride;
+                // quantize(d - data, *d, interp_linear(*(d - stride), *(d + stride), x0, x1));
+                // quantize(d - data, *d, interp_linear_3(*(d - stride) * 1.0, *(d + stride) * 1.0, 1.0, params[0], params[1], params[2]));
+                // quantize(d - data, *d, interp_linear_4(*(d - stride) * 1.0, *(d + stride) * 1.0, i / 32.0, log2(stride), params[0], params[1], params[2], params[3]));
+                size_t x = (begin + i * stride) / dimension_offsets[0];
+                size_t y = (begin + i * stride - x * dimension_offsets[0]) / dimension_offsets[1];
+                size_t z = begin + i * stride - x * dimension_offsets[0] - y * dimension_offsets[1];
+                quantize(d - data, *d, interp_linear_6(*(d - stride) * 1.0, *(d + stride) * 1.0, x*1.0, y*1.0, z*1.0, 1.0, params[0], params[1], params[2], params[3], params[4], params[5]));
+
+            }
+                // std::cout << "a3" << std::endl;
+
+            if (n % 2 == 0) {
+                T *d = data + begin + (n - 1) * stride;
+
+                if (n < 4) {
+                    // std::cout << "n=2\n" << std::endl;
+                    quantize(d - data, *d, *(d - stride));
+                } 
+            }
+        } else if (pb == PB_predict) {
+                // std::cout << "a4" << std::endl;
+            
+            for (size_t i = 1; i < n; i += 2) {
+                // std::cout << "a2" << std::endl;
+
+                T *d = data + begin + i * stride;
+                size_t x = (begin + i * stride) / dimension_offsets[0];
+                size_t y = (begin + i * stride - x * dimension_offsets[0]) / dimension_offsets[1];
+                size_t z = begin + i * stride - x * dimension_offsets[0] - y * dimension_offsets[1];
+                // std::cout << "a5" << std::endl;
+                
+                // quantize(d - data, *d, interp_linear(*(d - stride), *(d + stride), x0, x1));
+                // quantize(d - data, *d, interp_linear(*(d - stride), *(d + stride), .5, .5));
+                // training_sampler = (training_sampler + 1) % 7;
+                // if(training_sampler == 1) {
+                    // a = {*(d - stride), *(d + stride)};
+                    // accumulateOneSample(a, b, M, v, 2);
+                    x_s.push_back({*(d - stride) * 1.0, *(d + stride) * 1.0, x * 1.0, y * 1.0, z * 1.0});
+                    // x_s.push_back({*(d - stride), *(d + stride), i / 32.0, log2(stride)});
+                    y_s.push_back(*d);
+                // } else {
+                //     continue;
+                // }
+                // std::cout << "a6" << std::endl;
+
+            }
+        } else {
+            // float x0 = 0.5;
+            // float x1 = 0.5;
+            // if(coeff_idx < coeff_list.size()) {
+            //     x0 = coeff_list[coeff_idx][0];
+            //     x1 = coeff_list[coeff_idx][1];
+            // } else {
+            //     std::cout << "waa" << std::endl;
+            // }
+            for (size_t i = 1; i < n; i += 2) {
+                T *d = data + begin + i * stride;
+                // recover(d - data, *d, interp_linear_4(*(d - stride) * 1.0, *(d + stride) * 1.0, i / 32.0, log2(stride), params[0], params[1], params[2], params[3]));
+                // recover(d - data, *d, interp_linear_3(*(d - stride) * 1.0, *(d + stride) * 1.0, 1.0, params[0], params[1], params[2]));
+                // recover(d - data, *d, interp_linear(*(d - stride), *(d + stride), params[0], params[1]));
+                // recover(d - data, *d, interp_linear(*(d - stride), *(d + stride), .5, .5));
+                size_t x = (begin + i * stride) / dimension_offsets[0];
+                size_t y = (begin + i * stride - x * dimension_offsets[0]) / dimension_offsets[1];
+                size_t z = begin + i * stride - x * dimension_offsets[0] - y * dimension_offsets[1];
+                recover(d - data, *d, interp_linear_6(*(d - stride) * 1.0, *(d + stride) * 1.0, x*1.0, y*1.0, z*1.0, 1.0, params[0], params[1], params[2], params[3], params[4], params[5]));
+
+            }
+            if (n % 2 == 0) {
+                T *d = data + begin + (n - 1) * stride;
+                if (n < 4) {
+                    recover(d - data, *d, *(d - stride));
+                }
+            }
+        }
+                // std::cout << "a7" << std::endl;
+        
+
+        return predict_error;
+    }
+    
+
     double block_interpolation_1d(T *data, size_t begin, size_t end, size_t stride, const std::string &interp_func,
                                   const PredictorBehavior pb) {
         
@@ -1744,8 +1862,12 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
     std::vector<std::vector<double>> x_s;
     std::vector<double> y_s;
     int training_sampler = 0;
-    double filter_threshold = 2.0;
-    double lambda = 1e-5;
+    double filter_threshold = 3.0;
+    double lambda = 1e-7;
+
+    //normalization
+    double norm_min = 0;
+    double norm_max = 0;
 
 
     double block_interpolation_2d_22(T *data, size_t begin, size_t end, size_t stride, size_t stride_p1, size_t stride_p2, const std::string &interp_func,

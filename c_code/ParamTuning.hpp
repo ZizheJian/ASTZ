@@ -297,6 +297,30 @@ int robustRidgeRegression(const std::vector<std::vector<double>>& X,
 
 namespace FHDE {
 
+template <class T>
+void normalize(std::vector<T>& arr, double& min_val, double& max_val) {
+    // 计算最小值和最大值
+    auto result = std::minmax_element(arr.begin(), arr.end());
+    min_val = *result.first;
+    max_val = *result.second;
+
+    // 如果所有元素都相同，则归一化后全部设置为 0
+    if (max_val - min_val == 0) {
+        std::fill(arr.begin(), arr.end(), 0);
+        return;
+    }
+    // 归一化每个元素
+    for (size_t i = 0; i < arr.size(); ++i) {
+        arr[i] = (arr[i] - min_val) / (max_val - min_val);
+    }
+}
+template <class T>
+void denormalize(std::vector<T>& normalized, double min_val, double max_val) {
+    for (size_t i = 0; i < normalized.size(); ++i) {
+        normalized[i] = normalized[i] * (max_val - min_val) + min_val;
+    }
+}
+
 /**
  * @brief add the contribution of sample(a, b) to matrix M and vector v
  *
