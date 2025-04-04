@@ -1,5 +1,3 @@
-#测试不同model_block_step、pivot_ratio的影响
-
 import subprocess,os,random
 from typing import List
 
@@ -46,7 +44,8 @@ def call_c_compress(project_directory_path:str,data_path:str,data_shape:List[int
     output=("".join(output_lines)).strip()
     return output
 
-# data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_datasets/APSU_TestData_004/APSU_TestData_004_cut.bin"
+
+data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_datasets/APSU_TestData_004/APSU_TestData_004_cut.bin"
 data_shape:List[int]=[614,312,363]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/9-ID_CSSI_data/benchmarkdata/Avg_L0470_Double_exp_elong_siemens_1p00sampit_0p05inplane_patch1_of1_part0_001_cut.bin"
 # data_shape:List[int]=[150,453,390]
@@ -57,9 +56,9 @@ data_shape:List[int]=[614,312,363]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/NYX/baryon_density_log10_cut.f32"
 # data_shape:List[str]=[256,256,256]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/NYX/baryon_density_cut.f32"
-# data_shape:List[str]=[100,500,500]
+# data_shape:List[str]=[256,256,256]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/ISABEL/U/Uf48.bin"
-data_path:str="./APSU_TestData_004_cut.bin"
+# data_shape:List[str]=[100,500,500]
 
 
 rel_eb:float=1e-3
@@ -67,7 +66,7 @@ doughnut:bool=False
 method:str="FHDE"
 method_average:str="FHDE"
 method_residual:str="FHDE"
-FHDE_threshold=3
+FHDE_threshold=2
 FHDE_threshold_average=FHDE_threshold
 FHDE_threshold_residual=FHDE_threshold
 search_threshold:bool=False
