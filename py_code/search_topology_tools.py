@@ -270,6 +270,7 @@ def apply_topology(args:args_c,topology_manager:topology_manager_c,part_name:str
                     mat_X=lstsq_result.solution
                 else:
                     mat_X[:]=mat_X_baseline
+                mat_X[:]=mat_X_baseline
                 mat_X_bin,mat_X=quantize_parameter_with_baseline(mat_X,mat_X_baseline,args)
                 args.parameter.append(mat_X_bin)
                 conv=decode_conv(mat_X,mask_core,args)
