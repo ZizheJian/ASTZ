@@ -33,106 +33,6 @@ double dotProduct(const std::vector<double>& a, const std::vector<double>& b) {
     return sum;
 }
 
-// 用高斯消元法求解 n×n 的线性方程组 M * x = b
-std::vector<double> solveLinearSystem(std::vector<double>& M, std::vector<double>& b, int n) {
-    // 前向消元
-    for (int i = 0; i < n; i++) {
-        // 选取主元
-        int pivotRow = i;
-        double pivotVal = std::fabs(M[i*n + i]);
-        for (int r = i + 1; r < n; r++) {
-            double val = std::fabs(M[r*n + i]);
-            if (val > pivotVal) {
-                pivotVal = val;
-                pivotRow = r;
-            }
-        }
-        if (pivotVal < 1e-12)
-            throw std::runtime_error("Matrix is singular or ill-conditioned.");
-        if (pivotRow != i) {
-            for (int j = 0; j < n; j++) {
-                std::swap(M[i*n + j], M[pivotRow*n + j]);
-            }
-            std::swap(b[i], b[pivotRow]);
-        }
-        // 消元
-        for (int r = i + 1; r < n; r++) {
-            double factor = M[r*n + i] / M[i*n + i];
-            for (int j = i; j < n; j++) {
-                M[r*n + j] -= factor * M[i*n + j];
-            }
-            b[r] -= factor * b[i];
-        }
-    }
-    // 回代求解
-    std::vector<double> x(n, 0.0);
-    for (int i = n - 1; i >= 0; i--) {
-        double sum = b[i];
-        for (int j = i + 1; j < n; j++) {
-            sum -= M[i*n + j] * x[j];
-        }
-        x[i] = sum / M[i*n + i];
-    }
-    return x;
-}
-
-/**
- * @brief 计算岭回归（正则化最小二乘）的闭式解。
- *
- *  输入：
- *    - X: 大小为 N × k 的特征矩阵，每一行为一个 k 维向量。
- *    - y: 大小为 N 的目标向量。
- *    - lambda: 正则化参数（仅对 w 部分正则化，不对截距 s 正则化）。
- *
- *  输出：
- *    返回一个长度为 k+1 的向量，其中前 k 个元素为最优的 w，
- *    最后一个元素为最优的 s。
- */
-std::vector<double> computeClosedFormRidge(const std::vector<std::vector<double>>& X,
-                                           const std::vector<double>& y,
-                                           double lambda)
-{
-    int N = X.size();
-    if (N == 0)
-        throw std::runtime_error("No samples provided.");
-    int k = X[0].size();
-    int d = k + 1; // 增广后维度
-    std::vector<double> M(d * d, 0.0);
-    std::vector<double> b_vec(d, 0.0);
-    
-    for (int i = 0; i < N; i++) {
-        if (X[i].size() != static_cast<size_t>(k))
-            throw std::runtime_error("Inconsistent sample dimension.");
-        // 构造增广向量 a = [X[i][0], X[i][1], ..., X[i][k-1], 1]
-        std::vector<double> a(d, 0.0);
-        for (int j = 0; j < k; j++) {
-            a[j] = X[i][j];
-        }
-        a[k] = 1.0;
-        // 累加 A^T A 和 A^T y
-        for (int p = 0; p < d; p++) {
-            b_vec[p] += a[p] * y[i];
-            for (int q = 0; q < d; q++) {
-                M[p*d + q] += a[p] * a[q];
-            }
-        }
-    }
-    
-    // 加上正则化项：对 w 的部分（前 k 个分量）在对角线上加 lambda
-    for (int i = 0; i < k; i++) {
-        M[i*d + i] += lambda;
-    }
-    // 注意：截距 s（最后一个分量）不正则化，所以 M[k*d + k] 保持不变。
-
-    // 复制 M 和 b_vec，因为 solveLinearSystem 会修改它们
-    std::vector<double> M_copy = M;
-    std::vector<double> b_copy = b_vec;
-
-    // 求解 (M)x = b_vec，x 为增广参数 [w; s]
-    std::vector<double> sol = solveLinearSystem(M_copy, b_copy, d);
-    return sol;
-}
-
 // 使用 Eigen 进行数据归一化
 // 输入：X 为 std::vector<std::vector<double>>（N行，每行 k 维）
 // 输出：X_norm（N×k 的 Eigen 矩阵），means（k 维均值向量），stds（k 维标准差向量）
@@ -175,7 +75,7 @@ void normalizeData(const std::vector<std::vector<double>>& X,
 /**
  * @brief 先进行一次回归，过滤掉残差大于 threshold 的点，再做一次回归，返回最终回归的参数。
  *
- *  输入：
+ *  输入：f(x) = wx + s
  *    - X: 大小为 N×k 的特征矩阵，每一行为一个 k 维向量。
  *    - y: 大小为 N 的目标向量。
  *    - lambda: 正则化参数（仅对 w 正则化，不对 s 正则化）。
@@ -241,7 +141,7 @@ int robustRidgeRegression(const std::vector<std::vector<double>>& X,
             filteredIndices.push_back(i);
     }
     if (filteredIndices.empty() || filteredIndices.size() < N_threshold)
-        return 1;
+        return 1; // default
 
     std::cout << "X_filtered size: " << filteredIndices.size() << std::endl;
 

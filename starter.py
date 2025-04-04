@@ -35,7 +35,7 @@ def call_c_compress(project_directory_path:str,data_path:str,data_shape:List[int
     print(build_path)
     # subprocess.run("make install",cwd=build_path,shell=True,encoding="utf-8")
     os.chdir(project_directory_path)
-    command=f"{build_path +'/fhde'} -f -i {data_path} -o {data_path+'.fhde.out'} "
+    command=f"{build_path +'/fhde'} -f -i {data_path} -o {data_path+'.fhde'} "
     command+=f"-3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M REL {rel_eb} -a"
     print(command)
     process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.PIPE)
@@ -47,7 +47,7 @@ def call_c_compress(project_directory_path:str,data_path:str,data_shape:List[int
     return output
 
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_datasets/APSU_TestData_004/APSU_TestData_004_cut.bin"
-# data_shape:List[int]=[614,312,363]
+data_shape:List[int]=[614,312,363]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/9-ID_CSSI_data/benchmarkdata/Avg_L0470_Double_exp_elong_siemens_1p00sampit_0p05inplane_patch1_of1_part0_001_cut.bin"
 # data_shape:List[int]=[150,453,390]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/EXAFEL/SDRBENCH-EXAFEL-data-13x1480x1552.f32"
@@ -57,8 +57,9 @@ def call_c_compress(project_directory_path:str,data_path:str,data_shape:List[int
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/NYX/baryon_density_log10_cut.f32"
 # data_shape:List[str]=[256,256,256]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/NYX/baryon_density_cut.f32"
-data_shape:List[str]=[100,500,500]
-data_path:str="/anvil/projects/x-cis240192/x-zjian1/ISABEL/U/Uf48.bin"
+# data_shape:List[str]=[100,500,500]
+# data_path:str="/anvil/projects/x-cis240192/x-zjian1/ISABEL/U/Uf48.bin"
+data_path:str="./APSU_TestData_004_cut.bin"
 
 
 rel_eb:float=1e-3
@@ -77,8 +78,8 @@ project_directory_path=os.path.dirname(starter_file_path)
 if not search_threshold:
     if not doughnut:
         # call_generate_topology_list(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
-        call_py_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
-        # call_c_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
+        # call_py_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
+        call_c_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
     else:
         raise NotImplementedError
 else:
