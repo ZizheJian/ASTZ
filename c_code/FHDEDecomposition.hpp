@@ -850,7 +850,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
         do {
             dimension_sequences.push_back(sequence);
         } while (std::next_permutation(sequence.begin(), sequence.end()));
-
+        // std::cout << global_dimensions[0] << ' ' << global_dimensions[1] << ' ' << global_dimensions[2] << std::endl;
         level_dimension_loader();
     }
 
@@ -1149,8 +1149,8 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
             for (size_t j = begin_real[order[1]] + strides[order[1]]; j <= end_real[order[1]]; j += 2 * strides[order[1]]) {
                 size_t begin_real_offset = i * dimension_offsets[order[0]] + j * dimension_offsets[order[1]] +
                                       begin_real[order[2]] * dimension_offsets[order[2]];
-                if(i == end_real[order[0]]) {
-                    if(j == end_real[order[1]]) {
+                if(i + strides[order[0]] >= global_dimensions[order[0]]) {
+                    if(j + strides[order[1]] >= global_dimensions[order[1]]) {
                         // std::cout << "corner2" << std::endl;
                         predict_error += block_interpolation_2d_22_corner2(
                             data, begin_real_offset, begin_real_offset + (end_real[order[2]] - begin_real[order[2]]) * dimension_offsets[order[2]],
@@ -1162,7 +1162,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                             data, begin_real_offset, begin_real_offset + (end_real[order[2]] - begin_real[order[2]]) * dimension_offsets[order[2]],
                             strides[order[2]] * dimension_offsets[order[2]], strides[order[0]] * dimension_offsets[order[0]], strides[order[1]] * dimension_offsets[order[1]], interp_func, pb, !bool(begin_real[order[2]]));
                     }
-                } else if(j == end_real[order[1]]) {
+                } else if(j + strides[order[1]] >= global_dimensions[order[1]]) {
                         // std::cout << "corner12" << std::endl;
                     predict_error += block_interpolation_2d_22_corner1(
                             data, begin_real_offset, begin_real_offset + (end_real[order[2]] - begin_real[order[2]]) * dimension_offsets[order[2]],
@@ -1218,10 +1218,10 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                 size_t begin_real_offset = i * dimension_offsets[order[0]] + j * dimension_offsets[order[1]] +
                                       begin_real[order[2]] * dimension_offsets[order[2]];
 
-                if(i == begin_real[order[0]]) {
+                if(i == 0) {
                     if(begin_real[order[0]]) {continue; }
                     else {
-                        if(j == end_real[order[1]]) {
+                        if(j + strides[order[1]] >= global_dimensions[order[1]]) {
                             // top left corner
                             // std::cout << "top left corner" << std::endl;
                             
@@ -1238,7 +1238,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
 
                         }
                     }
-                } else if(i == end_real[order[0]]) {
+                } else if(i + strides[order[0]] >= global_dimensions[order[0]]) {
                     if(j == 0) {
                         // bot right corner
                         // std::cout << "bot right corner" << std::endl;
@@ -1246,7 +1246,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                         predict_error += block_interpolation_2d_23_corner(
                             data, begin_real_offset, begin_real_offset + (end_real[order[2]] - begin_real[order[2]]) * dimension_offsets[order[2]],
                             strides[order[2]] * dimension_offsets[order[2]], strides[order[0]] * dimension_offsets[order[0]], -strides[order[1]] * dimension_offsets[order[1]], interp_func, pb, !bool(begin_real[order[2]]));
-                    } else if(j == end_real[order[1]]) {
+                    } else if(j + strides[order[1]] >= global_dimensions[order[1]]) {
                         // top right corner
                         // std::cout << "top right corner" << std::endl;
                         // std::cout << "stride = " << strides[order[1]] << " begin = " << begin_real[order[1]] << " end=" <<end_real[order[1]] << " cnt_i = " << cnt_i << " even_i" << even_i << std::endl;
@@ -1269,7 +1269,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                     predict_error += block_interpolation_2d_23_edge(
                             data, begin_real_offset, begin_real_offset + (end_real[order[2]] - begin_real[order[2]]) * dimension_offsets[order[2]],
                             strides[order[2]] * dimension_offsets[order[2]], strides[order[0]] * dimension_offsets[order[0]], interp_func, pb, !bool(begin_real[order[2]]));
-                } else if(j == end_real[order[1]]) {
+                } else if(j + strides[order[1]] >= global_dimensions[order[1]]) {
                     // top edge
                     // std::cout << "top edge" << std::endl;
                     // std::cout << "stride = " << strides[order[1]] << " begin = " << begin_real[order[1]] << " end=" <<end_real[order[1]] << " cnt_i = " << cnt_i << " even_i" << even_i << std::endl;
@@ -1398,10 +1398,10 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                 size_t begin_real_offset = i * dimension_offsets[order[0]] + j * dimension_offsets[order[1]] +
                                       begin_real[order[2]] * dimension_offsets[order[2]];
 
-                if(i == begin_real[order[0]]) {
+                if(i == 0) {
                     if(begin_real[order[0]]) {continue; }
                     else {
-                        if(j == end_real[order[1]]) {
+                        if(j + strides[order[1]] >= global_dimensions[order[1]]) {
                             // top left corner
                             // std::cout << "top left corner" << std::endl;
                             
@@ -1418,7 +1418,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
 
                         }
                     }
-                } else if(i == end_real[order[0]]) {
+                } else if(i + strides[order[0]] >= global_dimensions[order[0]]) {
                     if(j == 0) {
                         // bot right corner
                         // std::cout << "bot right corner" << std::endl;
@@ -1426,7 +1426,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                         predict_error += block_interpolation_2d_24_corner(
                             data, begin_real_offset, begin_real_offset + (end_real[order[2]] - begin_real[order[2]]) * dimension_offsets[order[2]],
                             strides[order[2]] * dimension_offsets[order[2]], strides[order[0]] * dimension_offsets[order[0]], -strides[order[1]] * dimension_offsets[order[1]], interp_func, pb);
-                    } else if(j == end_real[order[1]]) {
+                    } else if(j + strides[order[1]] >= global_dimensions[order[1]]) {
                         // top right corner
                         // std::cout << "top right corner" << std::endl;
                         // std::cout << "stride = " << strides[order[1]] << " begin = " << begin_real[order[1]] << " end=" <<end_real[order[1]] << " cnt_i = " << cnt_i << " even_i" << even_i << std::endl;
@@ -1449,7 +1449,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                     predict_error += block_interpolation_2d_24_edge(
                             data, begin_real_offset, begin_real_offset + (end_real[order[2]] - begin_real[order[2]]) * dimension_offsets[order[2]],
                             strides[order[2]] * dimension_offsets[order[2]], strides[order[0]] * dimension_offsets[order[0]], interp_func, pb);
-                } else if(j == end_real[order[1]]) {
+                } else if(j + strides[order[1]] >= global_dimensions[order[1]]) {
                     // top edge
                     // std::cout << "top edge" << std::endl;
                     // std::cout << "stride = " << strides[order[1]] << " begin = " << begin_real[order[1]] << " end=" <<end_real[order[1]] << " cnt_i = " << cnt_i << " even_i" << even_i << std::endl;
@@ -1510,7 +1510,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
 
         x_s.clear();y_s.clear();
         training_sampler = 0;
-        
+
         double predict_error = 0;
         // std::cout << "43x:" << std::endl;
         // int cnt = (begin_real[order[0]] ? 1 : 0) + (begin_real[order[1]] ? 1 : 0);
@@ -1578,8 +1578,8 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
             for (size_t j = begin_real[order[1]] + strides[order[1]]; j <= end_real[order[1]]; j += 2 * strides[order[1]]) {
                 size_t begin_real_offset = i * dimension_offsets[order[0]] + j * dimension_offsets[order[1]] +
                                       begin_real[order[2]] * dimension_offsets[order[2]];
-                if(i == end_real[order[0]]) {
-                    if(j == end_real[order[1]]) {
+                if(i + strides[order[0]] >= global_dimensions[order[0]]) {
+                    if(j + strides[order[1]] >= global_dimensions[order[1]]) {
                         // std::cout << "13 top right corner" << std::endl;
                         predict_error += block_interpolation_2d_13_corner(
                             data, begin_real_offset, begin_real_offset + (end_real[order[2]] - begin_real[order[2]]) * dimension_offsets[order[2]],
@@ -1591,7 +1591,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                             data, begin_real_offset, begin_real_offset + (end_real[order[2]] - begin_real[order[2]]) * dimension_offsets[order[2]],
                             strides[order[2]] * dimension_offsets[order[2]], strides[order[0]] * dimension_offsets[order[0]], strides[order[1]] * dimension_offsets[order[1]], interp_func, pb);
                     }
-                } else if(j == end_real[order[1]]) {
+                } else if(j + strides[order[1]] >= global_dimensions[order[1]]) {
                         // std::cout << "13 top edge" << std::endl;
                     predict_error += block_interpolation_2d_13_edge(
                             data, begin_real_offset, begin_real_offset + (end_real[order[2]] - begin_real[order[2]]) * dimension_offsets[order[2]],
