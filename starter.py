@@ -60,6 +60,7 @@ def call_c_compress(project_directory_path:str,data_path:str,data_shape:List[int
 data_shape:List[str]=[100,500,500]
 data_path:str="/anvil/projects/x-cis240192/x-zjian1/ISABEL/U/Uf48.bin"
 
+
 rel_eb:float=1e-3
 doughnut:bool=False
 method:str="FHDE"

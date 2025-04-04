@@ -24,7 +24,11 @@ class LinearQuantizer : public concepts::QuantizerInterface<T, int> {
 
     void set_eb(double eb) {
         error_bound = eb;
-        error_bound_reciprocal = 1.0 / eb;
+        if(eb > 0) {
+            error_bound_reciprocal = 1.0 / eb;
+        } else {
+            error_bound_reciprocal = 1e10;
+        }
     }
 
     std::pair<int, int> get_out_range() const override { return std::make_pair(0, radius * 2); }
@@ -32,6 +36,10 @@ class LinearQuantizer : public concepts::QuantizerInterface<T, int> {
     // quantize the data with a prediction value, and returns the quantization index and the decompressed data
     // int quantize(T data, T pred, T& dec_data);
     ALWAYS_INLINE int quantize_and_overwrite(T &data, T pred) override {
+        if(this->error_bound == 0) {
+            unpred.push_back(data);
+            return 0;
+        }
         T diff = data - pred;
         auto quant_index = static_cast<int64_t>(fabs(diff) * this->error_bound_reciprocal) + 1;
         if (quant_index < this->radius * 2) {
@@ -67,6 +75,11 @@ class LinearQuantizer : public concepts::QuantizerInterface<T, int> {
      * @return
      */
      ALWAYS_INLINE int quantize_and_overwrite(T ori, T pred, T &dest) {
+        if(this->error_bound == 0) {
+            unpred.push_back(ori);
+            dest = ori;
+            return 0;
+        }
         T diff = ori - pred;
         auto quant_index = static_cast<int64_t>(fabs(diff) * this->error_bound_reciprocal) + 1;
         if (quant_index < this->radius * 2) {

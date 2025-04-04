@@ -15,6 +15,8 @@
 #include <cmath>
 #include <algorithm> // std::swap
 #include <iostream>
+
+#include "tools/eigen/Eigen/Dense"
 // 如有需要可启用 OpenMP
 // #ifdef _OPENMP
 #include <omp.h>
@@ -131,6 +133,45 @@ std::vector<double> computeClosedFormRidge(const std::vector<std::vector<double>
     return sol;
 }
 
+// 使用 Eigen 进行数据归一化
+// 输入：X 为 std::vector<std::vector<double>>（N行，每行 k 维）
+// 输出：X_norm（N×k 的 Eigen 矩阵），means（k 维均值向量），stds（k 维标准差向量）
+void normalizeData(const std::vector<std::vector<double>>& X,
+                   Eigen::MatrixXd &X_norm,
+                   Eigen::VectorXd &means,
+                   Eigen::VectorXd &stds)
+{
+    int N = X.size();
+    int k = X[0].size();
+    X_norm.resize(N, k);
+    means.resize(k);
+    stds.resize(k);
+    // 计算每一列的均值
+    for (int j = 0; j < k; j++) {
+        double sum = 0.0;
+        for (int i = 0; i < N; i++) {
+            sum += X[i][j];
+        }
+        means(j) = sum / N;
+    }
+    // 计算标准差
+    for (int j = 0; j < k; j++) {
+        double sumSq = 0.0;
+        for (int i = 0; i < N; i++) {
+            double diff = X[i][j] - means(j);
+            sumSq += diff * diff;
+        }
+        double s = std::sqrt(sumSq / N);
+        if (s < 1e-8) s = 1.0; // 防止除 0
+        stds(j) = s;
+    }
+    // 归一化
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < k; j++) {
+            X_norm(i, j) = (X[i][j] - means(j)) / stds(j);
+        }
+    }
+}
 /**
  * @brief 先进行一次回归，过滤掉残差大于 threshold 的点，再做一次回归，返回最终回归的参数。
  *
@@ -151,41 +192,134 @@ int robustRidgeRegression(const std::vector<std::vector<double>>& X,
 {
     int N = X.size();
     int N_threshold = 64;
-    // std::cout << "X size: " << N << std::endl;
+    std::cout << "X size: " << N << std::endl;
     if (N < N_threshold)
         return 1;
         // throw std::runtime_error("No training samples provided.");
     int k = X[0].size();
 
-    // 第一次回归：利用所有数据计算初步参数
-    std::vector<double> sol = computeClosedFormRidge(X, y, lambda);
-    // 分离 w 与 s（sol 的前 k 个为 w，最后一个为 s）
-    std::vector<double> w(sol.begin(), sol.begin() + k);
-    double s = sol[k];
+       // ----- 第一次回归：全数据归一化 + 闭式解 -----
+    Eigen::MatrixXd X_norm;
+    Eigen::VectorXd means, stds;
+    normalizeData(X, X_norm, means, stds); // X_norm: N x k
 
-    // 过滤：保留 |f(v) - y| <= threshold 的样本
+    // 构造增广设计矩阵 A，尺寸 N×(k+1)，每行 = [normalized features, 1]
+    Eigen::MatrixXd A(N, k + 1);
+    A.leftCols(k) = X_norm;
+    A.col(k) = Eigen::VectorXd::Ones(N);
+    // 构造目标向量 Y
+    Eigen::VectorXd Y = Eigen::Map<const Eigen::VectorXd>(y.data(), y.size());
+
+    // 构造正则化矩阵：对前 k 个维度加 lambda，截距部分不加正则化
+    Eigen::MatrixXd reg = Eigen::MatrixXd::Zero(k + 1, k + 1);
+    for (int i = 0; i < k; i++) {
+        reg(i, i) = lambda;
+    }
+
+    // 求解归一化下的闭式解：sol_norm = (A^T A + reg)^{-1} A^T Y
+    Eigen::VectorXd sol_norm = (A.transpose() * A + reg).ldlt().solve(A.transpose() * Y);
+    // 分离得到归一化下的参数：w_norm（k 维）和 s_norm（标量）
+    Eigen::VectorXd w_norm = sol_norm.head(k);
+    double s_norm = sol_norm(k);
+
+    // 将归一化下的参数转换回原始尺度
+    // 模型在归一化下为： f(x) = sum_j [w_norm(j) * (x_j - mean_j)/std_j] + s_norm
+    // 转换后： f(x) = sum_j [w_norm(j)/std_j * x_j] + (s_norm - sum_j [w_norm(j)*mean_j/std_j])
+    Eigen::VectorXd w_orig = w_norm.array() / stds.array();
+    double s_orig = s_norm - (w_norm.array() * means.array() / stds.array()).sum();
+
+
+    // ----- 过滤样本：保留 |f(x) - y| <= threshold 的样本 -----
+    std::vector<int> filteredIndices;
+    for (int i = 0; i < N; i++) {
+        double pred = 0.0;
+        for (int j = 0; j < k; j++) {
+            pred += X[i][j] * w_orig(j);
+        }
+        pred += s_orig;
+        if (std::fabs(pred - y[i]) <= threshold)
+            filteredIndices.push_back(i);
+    }
+    if (filteredIndices.empty() || filteredIndices.size() < N_threshold)
+        return 1;
+
+    std::cout << "X_filtered size: " << filteredIndices.size() << std::endl;
+
+    // 构造过滤后的数据 X_filtered 和 y_filtered
+    int Nf = filteredIndices.size();
     std::vector<std::vector<double>> X_filtered;
     std::vector<double> y_filtered;
-    for (int i = 0; i < N; i++) {
-        double pred = dotProduct(X[i], w) + s;
-        double error = std::fabs(pred - y[i]);
-        if (error <= threshold) {
-            X_filtered.push_back(X[i]);
-            y_filtered.push_back(y[i]);
-        }
+    X_filtered.reserve(Nf);
+    y_filtered.reserve(Nf);
+    for (int idx : filteredIndices) {
+        X_filtered.push_back(X[idx]);
+        y_filtered.push_back(y[idx]);
     }
-    if (X_filtered.empty() || X_filtered.size() < N_threshold)
-        return 1;
-        // throw std::runtime_error("No samples remain after filtering with the given threshold.");
-    // std::cout << "X_filtered size: " << X_filtered.size() << std::endl;
 
-    // 第二次回归：在过滤后的数据上重新回归
-    std::vector<double> sol_filtered = computeClosedFormRidge(X_filtered, y_filtered, lambda);
-    result = sol_filtered;
+    // ----- 第二次回归：在过滤后数据上重新归一化并回归 -----
+    Eigen::MatrixXd Xf_norm;
+    Eigen::VectorXd means_f, stds_f;
+    normalizeData(X_filtered, Xf_norm, means_f, stds_f); // Xf_norm: Nf x k
+
+    // 构造过滤后数据的增广矩阵 Af
+    Eigen::MatrixXd Af(Nf, k + 1);
+    Af.leftCols(k) = Xf_norm;
+    Af.col(k) = Eigen::VectorXd::Ones(Nf);
+    Eigen::VectorXd Yf = Eigen::Map<const Eigen::VectorXd>(y_filtered.data(), y_filtered.size());
+
+    // 构造正则化矩阵（尺寸 (k+1)×(k+1)）
+    Eigen::MatrixXd reg_f = Eigen::MatrixXd::Zero(k + 1, k + 1);
+    for (int i = 0; i < k; i++) {
+        reg_f(i, i) = lambda;
+    }
+    // 求解过滤后数据的闭式解
+    Eigen::VectorXd solf_norm = (Af.transpose() * Af + reg_f).ldlt().solve(Af.transpose() * Yf);
+    Eigen::VectorXd wf_norm = solf_norm.head(k);
+    double sf_norm = solf_norm(k);
+    // 将过滤后归一化下的参数转换回原始尺度（基于过滤后数据的均值与标准差）
+    Eigen::VectorXd wf_orig = wf_norm.array() / stds_f.array();
+    double sf_orig = sf_norm - (wf_norm.array() * means_f.array() / stds_f.array()).sum();
+    // 最终解：前 k 个为 wf_orig，最后一个为 sf_orig
+    std::vector<double> final_sol(k + 1);
+    for (int i = 0; i < k; i++) {
+        final_sol[i] = wf_orig(i);
+    }
+    final_sol[k] = sf_orig;
+    
+    result = final_sol;
+    std::cout << "params = ";
+    for(auto a : result) {
+        std::cout << a << ',';
+    }
+    std::cout << std::endl;
     return 0;
 }
 
 namespace FHDE {
+
+template <class T>
+void normalize(std::vector<T>& arr, double& min_val, double& max_val) {
+    // 计算最小值和最大值
+    auto result = std::minmax_element(arr.begin(), arr.end());
+    min_val = *result.first;
+    max_val = *result.second;
+
+    // 如果所有元素都相同，则归一化后全部设置为 0
+    if (max_val - min_val == 0) {
+        std::fill(arr.begin(), arr.end(), 0);
+        return;
+    }
+    // 归一化每个元素
+    for (size_t i = 0; i < arr.size(); ++i) {
+        arr[i] = (arr[i] - min_val) / (max_val - min_val);
+    }
+}
+template <class T>
+void denormalize(std::vector<T>& normalized, double min_val, double max_val) {
+    for (size_t i = 0; i < normalized.size(); ++i) {
+        normalized[i] = normalized[i] * (max_val - min_val) + min_val;
+    }
+}
 
 /**
  * @brief add the contribution of sample(a, b) to matrix M and vector v
