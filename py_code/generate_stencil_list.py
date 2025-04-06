@@ -2,19 +2,19 @@ import torch
 from args import args_c
 from read_dataset import read_dataset
 from plot_py import plot_c
-from search_topology_tools import search_topology
-from topology_manager import topology_manager_c
+from search_stencil_tools import search_stencil
+from stencil_manager import stencil_manager_c
 from separate_diffraction_average_residual import separate_diffraction_average_residual
 
 torch.set_num_threads(8)
 args=args_c()
 plotter=plot_c(args)
-topology_manager=topology_manager_c()
+stencil_manager=stencil_manager_c()
 read_dataset(args)
 if not args.doughnut:
-    search_topology(args,topology_manager)
+    search_stencil(args,stencil_manager)
 else:
-    pass
+    raise NotImplementedError
     # separate_diffraction_average_residual(args,plotter)
     # data_backup=copy.deepcopy(args.data)
     # args.data=args.data_average
