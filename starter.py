@@ -34,7 +34,7 @@ def call_c_compress(project_directory_path:str,data_path:str,data_shape:List[int
     # subprocess.run("make install",cwd=build_path,shell=True,encoding="utf-8")
     os.chdir(project_directory_path)
     command=f"{build_path +'/fhde'} -f -i {data_path} -o {data_path+'.fhde'} "
-    command+=f"-3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M REL {rel_eb} -a"
+    command+=f"-3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M REL {rel_eb} -a -c {'./topology_list/Uf48.bin.dat.txt'}"
     print(command)
     process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     output_lines=[]

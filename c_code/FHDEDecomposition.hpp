@@ -26,9 +26,15 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
     FHDEDecomposition(const Config &conf, Quantizer quantizer) : quantizer(quantizer) {
         static_assert(std::is_base_of<concepts::QuantizerInterface<T, int>, Quantizer>::value,
                       "must implement the quantizer interface");
+        if(conf.tpPath != nullptr) {
+            tpPath = conf.tpPath;
+        } else {
+            throw;
+        }
     }
 
     T *decompress(const Config &conf, std::vector<int> &quant_inds, T *dec_data) override {
+        
         init();
 
         this->quant_inds = quant_inds.data();
@@ -788,7 +794,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
     }
 
     void level_dimension_loader() {
-        std::ifstream infile("./topology_list/Uf48.bin.dat.txt"); 
+        std::ifstream infile(tpPath); 
         std::string line;
 
         while (std::getline(infile, line)) {
@@ -1854,6 +1860,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
     double norm_min = 0;
     double norm_max = 0;
 
+    char* tpPath = nullptr;
 
     double block_interpolation_2d_22(T *data, size_t begin, size_t end, size_t stride, size_t stride_p1, size_t stride_p2, const std::string &interp_func,
                                   const PredictorBehavior pb, bool startfrombot) {
