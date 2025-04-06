@@ -328,6 +328,8 @@ class Config {
     int blockSize = 0;
     int stride = 0;        // not used now
     uint8_t pred_dim = 0;  // not used now
+    
+    char* tpPath = nullptr;
 };
 
 }  // namespace SZ3

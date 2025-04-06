@@ -171,6 +171,15 @@ inline T interp_linear_8(T a1, T a2, T a3, T a4, T a5, T a6, T a7, T a8,
 }
 
 template <class T>
+inline T interp_linear_10(T a1, T a2, T a3, T a4, T a5, T a6,
+                          T a7, T a8, T a9, T a10,
+                          float w1, float w2, float w3, float w4, float w5, 
+                          float w6, float w7, float w8, float w9, float w10) {
+    return a1 * w1 + a2 * w2 + a3 * w3 + a4 * w4 + a5 * w5 + a6 * w6 +
+           a7 * w7 + a8 * w8 + a9 * w9 + a10 * w10;
+}
+
+template <class T>
 inline T interp_linear_12(T a1, T a2, T a3, T a4, T a5, T a6,
                           T a7, T a8, T a9, T a10, T a11, T a12,
                           float w1, float w2, float w3, float w4, float w5, float w6,

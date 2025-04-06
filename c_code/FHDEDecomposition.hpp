@@ -14,7 +14,7 @@
 #include "MemoryUtil.hpp"
 #include "Timer.hpp"
 #include "ParamTuning.hpp"
-
+#include <fstream>
 namespace FHDE {
 
 enum PredictorBehavior { PB_predict_overwrite, PB_predict, PB_recover };
@@ -26,9 +26,15 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
     FHDEDecomposition(const Config &conf, Quantizer quantizer) : quantizer(quantizer) {
         static_assert(std::is_base_of<concepts::QuantizerInterface<T, int>, Quantizer>::value,
                       "must implement the quantizer interface");
+        if(conf.tpPath != nullptr) {
+            tpPath = conf.tpPath;
+        } else {
+            throw;
+        }
     }
 
     T *decompress(const Config &conf, std::vector<int> &quant_inds, T *dec_data) override {
+        
         init();
 
         this->quant_inds = quant_inds.data();
@@ -48,11 +54,10 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
             // } else {
             //     quantizer.set_eb(0);
             // }
-            std::cout << "f1" << std::endl;
             
-            { // Log
-                std::cout << level << std::endl;
-            }
+            // { // Log
+            //     std::cout << level << std::endl;
+            // }
             // size_t stride = 1U << (level - 1);
 
             std::array<int, 3> strides = calc_stride(level_dimensions[level]);
@@ -158,22 +163,19 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
             block_divider(level_dimensions[level], begins, ends);
             // std::cout << begins.size() << ' ' << ends.size() << std::endl;
             if(foundtwo) dir = 3 - dir - dir2;
-            std::cout << "f2" << std::endl;
 
             for(int i = 0; i < begins.size(); i++) {
-            std::cout << "f3" << std::endl;
 
                 {
 
                     params = std::vector<double>(coeff_list[coeff_idx].begin(), coeff_list[coeff_idx].end());
-                    std::cout << params.size() << std::endl;
+                    // std::cout << params.size() << std::endl;
                     int param_size = params.size() - 4;
                     double baseline = 1.0 / param_size;
                     for(int k = 0; k < param_size; k++) {
                         params[k] += baseline;
                     }
                 }
-            std::cout << "f4" << std::endl;
                 
                 if(S == state::A) {
                     // dir = 3 - (level_dimensions[level][3] % 10);
@@ -228,11 +230,10 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                     interpolation(dec_data, begins[i], ends[i], PB_recover, interpolators[interpolator_id], level_dimensions[level][3], strides, dir);
                     coeff_idx++;
                 }
-            std::cout << "f5" << std::endl;
 
-                { // Log
-                    std::cout << "quant_index: " << quant_index << std::endl;
-                }
+                // { // Log
+                //     std::cout << "quant_index: " << quant_index << std::endl;
+                // }
             }
             last_dir = dir;
 
@@ -273,7 +274,6 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
         
         }
 
-            std::cout << "f6" << std::endl;
 
         quantizer.postdecompress_data();
         //            timer.stop("Interpolation Decompress");
@@ -307,7 +307,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
         normalize(arr, norm_min, norm_max);
         data = arr.data();
         
-        bool fixed_param_mode = true; // 
+        bool fixed_param_mode = false; // 
         std::copy_n(conf.dims.begin(), N, global_dimensions.begin());
         blocksize = 32;
         // blocksize = 65536;
@@ -320,9 +320,8 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
         std::vector<int> quant_inds_vec(num_elements);
         quant_inds = quant_inds_vec.data();
 
-        quantizer.set_eb(quantizer.get_eb() / (norm_max - norm_min));
+        quantizer.set_eb(quantizer.get_eb() / (norm_max - norm_min) * 2.0);
         double eb = quantizer.get_eb();
-        // std::cout << "eb = " << eb << std::endl;
         
 
         //            quant_inds.push_back(quantizer.quantize_and_overwrite(*data, 0));
@@ -457,6 +456,9 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
             block_divider(level_dimensions[level], begins, ends);
             // std::cout << begins.size() << ' ' << ends.size() << std::endl;
             if(foundtwo) dir = 3 - dir - dir2;
+
+            size_t quant_sz_1 = quant_index;
+
             for(int i = 0; i < begins.size(); i++) {
                 // std::cout << "block" << i << ": " << begins[i][0] << ' ' << begins[i][1] << ' ' << begins[i][2] << " to " << ends[i][0] << ' ' << ends[i][1] << ' ' << ends[i][2] << std::endl;
                 if(S == state::A) {
@@ -470,13 +472,6 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                                                     0, 0, 0, 0};
                             if(!fixed_param_mode && x_s.size() && !robustRidgeRegression(x_s, y_s, w, lambda, filter_threshold * eb * pow(0.95, level))) {
                                 params = w;
-                                // std::cout << "13x params: ";
-
-                                // for(int m = 0; m < params.size(); m++) {
-                                //     std::cout << params[m];
-                                // }
-                                // std::cout << std::endl;
-
                             } else {
                                 params = {0.125, 0.125, 0.125, 0.125, 
                                         0.125, 0.125, 0.125, 0.125, 
@@ -498,7 +493,15 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                         interpolation(data, begins[i], ends[i], PB_predict_overwrite, interpolators[interpolator_id], level_dimensions[level][3], strides, dir);
                     }
                 } else if(S == state::B) {
+                    // std::cout << "quant_sz_1: " << quant_sz_1 << std::endl;
                     interpolation(data, begins[i], ends[i], PB_predict_overwrite, interpolators[interpolator_id], 221, strides, dir);
+                    // std::cout << "x_s_size: " << x_s.size() << std::endl;
+
+                    // for(int k = 0; k < x_s.size(); k++) {
+                    //     std::cout << "x_s " << k << " " << x_s[k][0] << ' ' << x_s[k][1] << ' ' << x_s[k][2] << ' ' << x_s[k][3] << std::endl; 
+                    //     std::cout << "y_s " << k << " " << y_s[k] << std::endl; 
+                    // }
+
                 } else if (S == state::C) {
                     dir = foundone ? dir : last_dir;
 
@@ -609,13 +612,6 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                                                     0, 0, 0, 0};
                             if(!fixed_param_mode && x_s.size() && !robustRidgeRegression(x_s, y_s, w, lambda, filter_threshold * eb * pow(0.95, level))) {
                                 params = w;
-                                // std::cout << "24x params: ";
-
-                                // for(int m = 0; m < params.size(); m++) {
-                                //     std::cout << params[m];
-                                // }
-                                // std::cout << std::endl;
-
                             } else {
                                 params = {0.125, 0.125, 0.125, 0.125, 
                                         0.125, 0.125, 0.125, 0.125, 
@@ -635,16 +631,18 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                         interpolation(data, begins[i], ends[i], PB_predict_overwrite, interpolators[interpolator_id], level_dimensions[level][3], strides, dir);
                     }
                 } else if(S == state::F) {
-                    dir = 3 - (level_dimensions[level][3] % 10);
+                    dir = 2;
+                    // dir = 3 - (level_dimensions[level][3] % 10);
+
                     // std::cout << "from F: " << "dir = " << dir << std::endl;
                     interpolation(data, begins[i], ends[i], PB_predict, interpolators[interpolator_id], 431, strides, dir);
                     {   // train
-                        std::vector<double> w = {0.5, 0.5, 
+                        std::vector<double> w = {0.167, 0.167, 0.167, 0.167, 0.167, 0.167, 
                                                 0, 0, 0, 0};
                         if(!fixed_param_mode && x_s.size() && !robustRidgeRegression(x_s, y_s, w, lambda, filter_threshold * eb * pow(0.95, level))) {
                             params = w;
                         } else {
-                            params = {0.5, 0.5, 
+                            params = {1.0 / 6, 1.0 / 6, 1.0 / 6, 1.0 / 6, 1.0 / 6, 1.0 / 6, 
                                     0, 0, 0, 0};
                         }
                     }
@@ -796,7 +794,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
     }
 
     void level_dimension_loader() {
-        std::ifstream infile("./topology_list/Uf48.bin.dat.txt"); 
+        std::ifstream infile(tpPath); 
         std::string line;
 
         while (std::getline(infile, line)) {
@@ -1247,6 +1245,8 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                 break;
             }
         }
+        x_s.clear();y_s.clear();
+        training_sampler = 0;
         double predict_error = 0;
         // std::cout << "f33" << std::endl;
         for (size_t i = begin_real[order[0]] + strides[order[0]]; i <= end_real[order[0]]; i += 2 * strides[order[0]]) {
@@ -1627,14 +1627,19 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                 int cntj = (strides[order[1]] ? (j - begin_real[order[1]]) / strides[order[1]] : 0);
                 if(((cnti % 2) + cntj) % 2 == 0) {
                     // std::cout << "even i: " << (strides[order[0]] ? (i - begin_real[order[0]]) / strides[order[0]] : 0) << " j: " << (strides[order[1]] ? (j - begin_real[order[1]]) / strides[order[1]] : 0) << std::endl;
-                    predict_error += block_interpolation_1d(
+                    predict_error += block_interpolation_3d_43(
                                 data, begin_real_offset, begin_real_offset + (end_real[order[2]] - begin_real[order[2]]) * dimension_offsets[order[2]],
-                                strides[order[2]] * dimension_offsets[order[2]], interp_func, pb);
+                                strides[order[2]] * dimension_offsets[order[2]], strides[order[0]] * dimension_offsets[order[0]], strides[order[1]] * dimension_offsets[order[1]],
+                                interp_func, pb, false, false, strides[0], strides[1], strides[2]);
                 } else {
                     // std::cout << "odd i: " << (strides[order[0]] ? (i - begin_real[order[0]]) / strides[order[0]] : 0) << " j: " << (strides[order[1]] ? (j - begin_real[order[1]]) / strides[order[1]] : 0) << std::endl;
-                    predict_error += block_interpolation_1d_odd(
+                    // predict_error += block_interpolation_1d_odd(
+                    //             data, begin_real_offset, begin_real_offset + (end_real[order[2]] - begin_real[order[2]]) * dimension_offsets[order[2]],
+                    //             strides[order[2]] * dimension_offsets[order[2]], interp_func, pb, begin_real[order[2]] == 0);
+                    predict_error += block_interpolation_3d_43(
                                 data, begin_real_offset, begin_real_offset + (end_real[order[2]] - begin_real[order[2]]) * dimension_offsets[order[2]],
-                                strides[order[2]] * dimension_offsets[order[2]], interp_func, pb, begin_real[order[2]] == 0);
+                                strides[order[2]] * dimension_offsets[order[2]], strides[order[0]] * dimension_offsets[order[0]], strides[order[1]] * dimension_offsets[order[1]],
+                                interp_func, pb, true, begin_real[order[2]] != 0, strides[0], strides[1], strides[2]);
                 }
                     // std::cout << "quant_index: " << quant_index << std::endl;
                         
@@ -1855,6 +1860,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
     double norm_min = 0;
     double norm_max = 0;
 
+    char* tpPath = nullptr;
 
     double block_interpolation_2d_22(T *data, size_t begin, size_t end, size_t stride, size_t stride_p1, size_t stride_p2, const std::string &interp_func,
                                   const PredictorBehavior pb, bool startfrombot) {
@@ -1879,9 +1885,14 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
             } 
             for (size_t i = 1; i < n; i++) {
                 T *d = data + begin + i * stride;
+                
                 // quantize(d - data, *d, interp_linear(*(d - stride), *(d + stride), x0, x1));
                 quantize(d - data, *d, interp_linear_2d_22x(*(d - stride_p1 - stride_p2), *(d - stride_p1 + stride_p2), *(d + stride_p1 - stride_p2), *(d + stride_p1 + stride_p2)));
             }
+            
+                
+        } else if(pb == PB_predict) {
+            
         } else {
             // float x0 = 0.5;
             // float x1 = 0.5;
@@ -1927,6 +1938,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
             for (size_t i = 1; i < n; i++) {
                 T *d = data + begin + i * stride;
                 // quantize(d - data, *d, interp_linear(*(d - stride), *(d + stride), x0, x1));
+                
                 quantize(d - data, *d, interp_linear_2d_22x_corner1(*(d - stride_p1 - stride_p2), *(d - stride_p1 + stride_p2)));
             }
         } else {
@@ -1976,6 +1988,7 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                 // quantize(d - data, *d, interp_linear(*(d - stride), *(d + stride), x0, x1));
                 quantize(d - data, *d, interp_linear_2d_22x_corner2(*(d - stride_p1 - stride_p2)));
             }
+        
         } else {
             // float x0 = 0.5;
             // float x1 = 0.5;
@@ -2515,6 +2528,109 @@ class FHDEDecomposition : public concepts::DecompositionInterface<T, int, N> {
                 T *d = data + begin + i * stride;
                 // quantize(d - data, *d, interp_linear(*(d - stride), *(d + stride), x0, x1));
                 recover(d - data, *d, *(d - stride_p1 - stride_p2 - stride));
+            }
+        }
+        
+
+        return predict_error;
+    }
+
+
+    double block_interpolation_3d_43(T *data, size_t begin, size_t end, size_t stride, size_t stride_p1, size_t stride_p2, const std::string &interp_func,
+                                  const PredictorBehavior pb, bool startfrombeginning, bool skipbeginning, int stride_x, int stride_y, int stride_z) {
+        // { // Log
+        //     std::cout << "[Log] begin: " << begin << ", end: " << end << ", stride: " << stride << ", stride_p1: " << stride_p1 << ", stride_p2: " << stride_p2 << std::endl;
+        // }
+        size_t n = (stride == 0) ? 1 : (end - begin) / stride + 1;
+        int x_0 = (begin) / dimension_offsets[0];
+        int y_0 = (begin - x_0 * dimension_offsets[0]) / dimension_offsets[1];
+        int z_0 = begin - x_0 * dimension_offsets[0] - y_0 * dimension_offsets[1];
+        // { // Log
+        //     std::cout << "[Log] x_0: " << x_0 << ", y_0: " << y_0 << ", z_0: " << z_0 << std::endl;
+        // }
+        if(n <= 1) {
+            return 0;
+        }
+        // { // Log
+        //     std::cout << "[Log] stride_x: " << stride_x << ", stride_y: " << stride_y << ", stride_z: " << stride_z << std::endl;
+        // }
+
+        double predict_error = 0;
+
+        bool legal_ptop = (y_0 + stride_y < global_dimensions[1]);
+        bool legal_pdown = (y_0 - stride_y >= 0);
+        bool legal_pright = (x_0 + stride_x < global_dimensions[0]);
+        bool legal_pleft = (x_0 - stride_x >= 0);
+        bool legal_pbehind = (z_0 - stride_z >= 0);
+        bool legal_pfront = (z_0 + n * stride_z < global_dimensions[2]);
+        
+        if (pb == PB_predict_overwrite) {
+            for (size_t i = startfrombeginning ? (skipbeginning ? 2 : 0) : 1; i < n; i+=2) {
+                T *d = data + begin + i * stride;
+                size_t x = (begin + i * stride) / dimension_offsets[0];
+                size_t y = (begin + i * stride - x * dimension_offsets[0]) / dimension_offsets[1];
+                size_t z = begin + i * stride - x * dimension_offsets[0] - y * dimension_offsets[1];
+                // quantize(d - data, *d, interp_linear(*(d - stride), *(d + stride), x0, x1));
+
+                T top = legal_ptop ? *(d + stride_p2) : 0;
+                T down = legal_pdown ? *(d - stride_p2) : 0;
+                T right = legal_pright ? *(d + stride_p1) : 0;
+                T left = legal_pleft ? *(d - stride_p1) : 0;
+                T behind = (legal_pbehind || (i > 0)) ? *(d - stride) : 0;
+                T front = (legal_pfront || i != (n - 1)) ? *(d + stride) : 0;
+                // T behind = 0;
+                // T front = 0;
+               
+                quantize(d - data, *d, interp_linear_10(
+                    left * 1.0, right * 1.0, down * 1.0, top * 1.0, behind * 1.0, front * 1.0,
+                    x * 1.0, y * 1.0, z * 1.0, 1.0,
+                    params[0], params[1], params[2], params[3], params[4], 
+                    params[5], params[6], params[7], params[8], params[9]
+                ));
+            }
+        } else if(pb == PB_predict) {
+            for (size_t i = startfrombeginning ? (skipbeginning ? 2 : 0) : 1; i < n; i+=2) {
+
+                T *d = data + begin + i * stride;
+                size_t x = (begin + i * stride) / dimension_offsets[0];
+                size_t y = (begin + i * stride - x * dimension_offsets[0]) / dimension_offsets[1];
+                size_t z = begin + i * stride - x * dimension_offsets[0] - y * dimension_offsets[1];
+                // quantize(d - data, *d, interp_linear(*(d - stride), *(d + stride), x0, x1));
+
+                T top = legal_ptop ? *(d + stride_p2) : 0;
+                T down = legal_pdown ? *(d - stride_p2) : 0;
+                T right = legal_pright ? *(d + stride_p1) : 0;
+                T left = legal_pleft ? *(d - stride_p1) : 0;
+                T behind = (legal_pbehind || (i > 0)) ? *(d - stride) : 0;
+                T front = (legal_pfront || i != (n - 1)) ? *(d + stride) : 0;
+                if(top && down && right && left && behind && front) {
+                    x_s.push_back({left * 1.0, right * 1.0, down * 1.0, top * 1.0, behind * 1.0, front * 1.0, x * 1.0, y * 1.0, z * 1.0});
+                    y_s.push_back(*d);
+                }
+            }
+        } else {
+            for (size_t i = startfrombeginning ? (skipbeginning ? 2 : 0) : 1; i < n; i+=2) {
+                T *d = data + begin + i * stride;
+                size_t x = (begin + i * stride) / dimension_offsets[0];
+                size_t y = (begin + i * stride - x * dimension_offsets[0]) / dimension_offsets[1];
+                size_t z = begin + i * stride - x * dimension_offsets[0] - y * dimension_offsets[1];
+                // quantize(d - data, *d, interp_linear(*(d - stride), *(d + stride), x0, x1));
+
+                T top = legal_ptop ? *(d + stride_p2) : 0;
+                T down = legal_pdown ? *(d - stride_p2) : 0;
+                T right = legal_pright ? *(d + stride_p1) : 0;
+                T left = legal_pleft ? *(d - stride_p1) : 0;
+                T behind = (legal_pbehind || (i > 0)) ? *(d - stride) : 0;
+                T front = (legal_pfront || i != (n - 1)) ? *(d + stride) : 0;
+                // T behind = 0;
+                // T front = 0;
+
+                recover(d - data, *d, interp_linear_10(
+                    left * 1.0, right * 1.0, down * 1.0, top * 1.0, behind * 1.0, front * 1.0,
+                    x * 1.0, y * 1.0, z * 1.0, 1.0,
+                    params[0], params[1], params[2], params[3], params[4], 
+                    params[5], params[6], params[7], params[8], params[9]
+                ));
             }
         }
         

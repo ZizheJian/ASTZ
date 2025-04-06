@@ -92,7 +92,7 @@ int robustRidgeRegression(const std::vector<std::vector<double>>& X,
 {
     int N = X.size();
     int N_threshold = 64;
-    std::cout << "X size: " << N << std::endl;
+    // std::cout << "X size: " << N << std::endl;
     if (N < N_threshold)
         return 1;
         // throw std::runtime_error("No training samples provided.");
@@ -143,7 +143,7 @@ int robustRidgeRegression(const std::vector<std::vector<double>>& X,
     if (filteredIndices.empty() || filteredIndices.size() < N_threshold)
         return 1; // default
 
-    std::cout << "X_filtered size: " << filteredIndices.size() << std::endl;
+    // std::cout << "X_filtered size: " << filteredIndices.size() << std::endl;
 
     // 构造过滤后的数据 X_filtered 和 y_filtered
     int Nf = filteredIndices.size();
@@ -187,11 +187,11 @@ int robustRidgeRegression(const std::vector<std::vector<double>>& X,
     final_sol[k] = sf_orig;
     
     result = final_sol;
-    std::cout << "params = ";
-    for(auto a : result) {
-        std::cout << a << ',';
-    }
-    std::cout << std::endl;
+    // std::cout << "params = ";
+    // for(auto a : result) {
+    //     std::cout << a << ',';
+    // }
+    // std::cout << std::endl;
     return 0;
 }
 
@@ -209,15 +209,16 @@ void normalize(std::vector<T>& arr, double& min_val, double& max_val) {
         std::fill(arr.begin(), arr.end(), 0);
         return;
     }
-    // 归一化每个元素
+    // 归一化每个元素到 [-1, 1] 范围
     for (size_t i = 0; i < arr.size(); ++i) {
-        arr[i] = (arr[i] - min_val) / (max_val - min_val);
+        arr[i] = (arr[i] - min_val) * 2 / (max_val - min_val) - 1;
     }
 }
+
 template <class T>
 void denormalize(std::vector<T>& normalized, double min_val, double max_val) {
     for (size_t i = 0; i < normalized.size(); ++i) {
-        normalized[i] = normalized[i] * (max_val - min_val) + min_val;
+        normalized[i] = (normalized[i] + 1) / 2 * (max_val - min_val) + min_val;
     }
 }
 

@@ -197,6 +197,7 @@ int main(int argc, char *argv[]) {
     char *inPath = nullptr;
     char *cmpPath = nullptr;
     char *conPath = nullptr;
+    char *tpPath = nullptr;
     char *decPath = nullptr;
     bool delCmpPath = false;
 
@@ -298,7 +299,8 @@ int main(int argc, char *argv[]) {
                 break;
             case 'c':
                 if (++i == argc) usage();
-                conPath = argv[i];
+                // conPath = argv[i];
+                tpPath = argv[i];
                 break;
             case '1':
                 if (++i == argc || sscanf(argv[i], "%zu", &r1) != 1) usage();
@@ -393,6 +395,10 @@ int main(int argc, char *argv[]) {
     }
     if (compression && conPath != nullptr) {
         conf.loadcfg(conPath);
+    }
+
+    if (tpPath != nullptr) {
+        conf.tpPath = tpPath;
     }
 
     if (errBoundMode != nullptr) {
