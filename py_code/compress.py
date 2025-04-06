@@ -2,42 +2,43 @@ import torch,math,copy,subprocess,os
 from args import args_c
 from plot_py import plot_c
 from read_dataset import read_dataset
-from topology_manager import topology_manager_c
-from search_topology_tools import apply_topology,apply_topology2
+from stencil_manager import stencil_manager_c
+from search_stencil_tools import apply_stencil,apply_topology2
 from separate_diffraction_average_residual import separate_diffraction_average_residual,get_actual_residual_data,add_average_and_residual_data
 
 torch.set_num_threads(8)
 args=args_c()
 plotter=plot_c(args)
-topology_manager=topology_manager_c()
+stencil_manager=stencil_manager_c()
 read_dataset(args)
 if not args.doughnut:
-    apply_topology(args,topology_manager)
+    apply_stencil(args,stencil_manager)
     args.parameter=torch.cat(args.parameter)
     sorted_parameter=torch.sort(args.parameter).values
     with open(os.path.join(args.project_root,"sorted_parameter.txt"),"w") as f:
         for i in range(sorted_parameter.size(0)):
             f.write(f"{sorted_parameter[i].item()}\n")
 else:
+    raise NotImplementedError
     ########压缩average_data########
-    separate_diffraction_average_residual(args,plotter)
-    data_backup=copy.deepcopy(args.data)
-    args.data=args.data_average
-    data_shape_backup=copy.deepcopy(args.data_shape)
-    args.data_shape=args.data_shape_average
-    args.data_average_decompressed=apply_topology(args,topology_manager,part_name="average")
-    args.data=data_backup
-    args.data_shape=data_shape_backup
+    # separate_diffraction_average_residual(args,plotter)
+    # data_backup=copy.deepcopy(args.data)
+    # args.data=args.data_average
+    # data_shape_backup=copy.deepcopy(args.data_shape)
+    # args.data_shape=args.data_shape_average
+    # args.data_average_decompressed=apply_topology(args,stencil_manager,part_name="average")
+    # args.data=data_backup
+    # args.data_shape=data_shape_backup
     ########压缩residual_data########
-    get_actual_residual_data(args)
-    data_backup=copy.deepcopy(args.data)
-    args.data=args.data_residual
-    if args.method_residual==[]:
-        args.data_residual_decompressed=apply_topology2(args,part_name="residual")
-    else:
-        args.data_residual_decompressed=apply_topology(args,topology_manager,part_name="residual")
-    args.data=data_backup
-    args.data_decompressed=add_average_and_residual_data(args)
+    # get_actual_residual_data(args)
+    # data_backup=copy.deepcopy(args.data)
+    # args.data=args.data_residual
+    # if args.method_residual==[]:
+    #     args.data_residual_decompressed=apply_topology2(args,part_name="residual")
+    # else:
+    #     args.data_residual_decompressed=apply_topology(args,stencil_manager,part_name="residual")
+    # args.data=data_backup
+    # args.data_decompressed=add_average_and_residual_data(args)
 args.data=args.data_min+(args.data+1)*(args.data_max-args.data_min)/2
 args.data_decompressed=args.data_min+(args.data_decompressed+1)*(args.data_max-args.data_min)/2
 max_err=(args.data-args.data_decompressed).abs().max().item()

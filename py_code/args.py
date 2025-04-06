@@ -11,6 +11,7 @@ class args_c:
         self.data_path:str=""
         self.data_compressed_path:str=""
         self.data_decompressed_path:str=""
+        self.stencil_path:str=""
         self.data_shape:List[int]=[]
         self.rel_eb:float=0
         self.doughnut:bool=False
@@ -47,19 +48,19 @@ class args_c:
         self.mask_list:List[Tensor]=[]#true表示直接继承自上一层，false表示需要插值
         self.eb_power_list:List[int]=None
         self.cur_shape_list:List[List[int]]=None
-        self.topology_id_list:List[int]=None
+        self.stencil_id_list:List[int]=None
         self.parameter_eb:float=0
         #自动生成的参数
-        self.pos:Tensor=None
         self.padded_pos:Tensor=None
         self.pos_ch:int=0
-        self.apply_setting()
-    def apply_setting(self):
+        self.apply_settings()
+    def apply_settings(self):
         parser=argparse.ArgumentParser()
         parser.add_argument("-f",dest="data_type_float32",action="store_true")
         parser.add_argument("-i",dest="data_path",type=str)
         parser.add_argument("-z",dest="data_compressed_path",type=str)
         parser.add_argument("-o",dest="data_decompressed_path",type=str)
+        parser.add_argument("-c",dest="stencil_path",type=str)
         parser.add_argument("-E",dest="err",nargs="+")
         parser.add_argument("-3",dest="data_shape",nargs=3,type=int)
         parser.add_argument("-M",dest="method",nargs="+")
@@ -71,13 +72,14 @@ class args_c:
         self.data_path=temp_args.data_path
         self.data_compressed_path=temp_args.data_compressed_path
         self.data_decompressed_path=temp_args.data_decompressed_path
+        self.stencil_path=temp_args.stencil_path
         self.data_shape=[temp_args.data_shape[2],temp_args.data_shape[1],temp_args.data_shape[0]]
         self.rel_eb=float(temp_args.err[1])
         self.doughnut=temp_args.doughnut
         self.method=temp_args.method[0]
         self.FHDE_threshold=float(temp_args.method[1])
         self.model_block_step=[32,32,32]
-        self.padded_pos=torch.zeros([4]+[i+2 for i in self.model_block_step]).unsqueeze(0).float()
+        self.padded_pos=torch.zeros([4]+[i+2 for i in self.model_block_step]).unsqueeze(0).float()#需要pad是因为cur_block_ext有pad，方便一些，没有pad也能写
         self.padded_pos[0,0]=(torch.arange(self.model_block_step[0]+2)-1).view(-1,1,1).expand([x+2 for x in self.model_block_step])*2/(self.model_block_step[0]-1)-1
         self.padded_pos[0,1]=(torch.arange(self.model_block_step[1]+2)-1).view(1,-1,1).expand([x+2 for x in self.model_block_step])*2/(self.model_block_step[1]-1)-1
         self.padded_pos[0,2]=(torch.arange(self.model_block_step[2]+2)-1).view(1,1,-1).expand([x+2 for x in self.model_block_step])*2/(self.model_block_step[2]-1)-1
@@ -85,10 +87,9 @@ class args_c:
         self.padded_pos=self.padded_pos[:,0:4]
         self.pos_ch=self.padded_pos.shape[1]
         self.min_reference_num=1
-        self.separate_average_residual:bool=False
+        self.parameter_relative_eb=1e-2
+        self.pivot_ratio=2**15
         self.method_average=["FHDE"]
         self.method_residual=["FHDE"]
-        self.parameter_relative_eb=1e-2
         self.FHDE_threshold_average=5
         self.FHDE_threshold_residual=5
-        self.pivot_ratio=2**13

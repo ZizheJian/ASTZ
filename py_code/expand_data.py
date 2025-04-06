@@ -4,7 +4,7 @@ from itertools import product
 from args import args_c
 from typing import Tuple,List
 
-def expand_data(cur_data:Tensor,tgt_data:Tensor,mask:Tensor,pred_gap:List[int],args:args_c,cur_shape:List[int],topology:Tensor)->Tuple[Tensor,Tensor,Tensor,List[int]]:
+def expand_data(cur_data:Tensor,tgt_data:Tensor,mask:Tensor,pred_gap:List[int],args:args_c,cur_shape:List[int],stencil:Tensor)->Tuple[Tensor,Tensor,Tensor,List[int]]:
     expand_dimension=[False,False,False]
     for i in range(3):
         if cur_shape[i]>tgt_data.shape[i+2]:
@@ -19,5 +19,5 @@ def expand_data(cur_data:Tensor,tgt_data:Tensor,mask:Tensor,pred_gap:List[int],a
     new_mask=torch.zeros((1,2)+tgt_data.shape[2:5],dtype=torch.bool)
     new_mask[:,0,0::expand_gap[0],0::expand_gap[1],0::expand_gap[2]]=mask[:,0]
     for i0,i1,i2 in product(range(0,2),repeat=3):
-        new_mask[:,1,i0::2,i1::2,i2::2]=topology[i0,i1,i2]
+        new_mask[:,1,i0::2,i1::2,i2::2]=stencil[i0,i1,i2]
     return new_cur_data,tgt_data,new_mask,pred_gap
