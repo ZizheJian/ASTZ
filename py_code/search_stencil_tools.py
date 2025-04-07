@@ -273,13 +273,15 @@ def apply_stencil(args:args_c,stencil_manager:stencil_manager_c,part_name:str=""
                 args.parameter.append(mat_X_bin)
                 conv=decode_conv(mat_X,mask_core,args)
                 h=F.conv3d(cur_block_ext,conv)
-            if stencil_id==413:
+            seq=(0,1,2,3,4)
+            if stencil_id==411:
+                seq=(0,1,2,3,4)
+            elif stencil_id==412:
+                seq=(0,1,2,4,3)
+            elif stencil_id==413:
                 seq=(0,1,3,4,2)
-                quantize((tgt_block-h).permute(seq),mask_block[:,1:2].permute(seq),args.abs_eb,tgt_num,args)
-                cur_block.permute(seq)[mask_block[:,1:2].permute(seq)]=(h.permute(seq)[mask_block[:,1:2].permute(seq)]+args.qb[args.qb_begin:args.qb_end]*2*args.abs_eb)
-            else:
-                quantize(tgt_block-h,mask_block[:,1:2],args.abs_eb,tgt_num,args)
-                cur_block[mask_block[:,1:2]]=h[mask_block[:,1:2]]+args.qb[args.qb_begin:args.qb_end]*2*args.abs_eb
+            quantize((tgt_block-h).permute(seq),mask_block[:,1:2].permute(seq),args.abs_eb,tgt_num,args)
+            cur_block.permute(seq)[mask_block[:,1:2].permute(seq)]=(h.permute(seq)[mask_block[:,1:2].permute(seq)]+args.qb[args.qb_begin:args.qb_end]*2*args.abs_eb)
             irr_mask=(args.qb[args.qb_begin:args.qb_end].abs()>32767)
             args.pivot[args.pivot_num:args.pivot_num+irr_mask.sum().item()]=tgt_block[mask_block[:,1:2]][irr_mask]
             args.pivot_num+=irr_mask.sum().item()
