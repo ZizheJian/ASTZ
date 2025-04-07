@@ -169,7 +169,7 @@ def search_stencil(args:args_c,stencil_manager:stencil_manager_c,part_name:str="
                     rmsqb+=(rmsqb_block**2)*rmsqb_block_num
                     rmsqb_num+=rmsqb_block_num
             rmsqb=(rmsqb/rmsqb_num)**0.5
-            print(f"topology={stencil_id}, rmsqb={rmsqb}",flush=True)
+            print(f"stencil={stencil_id}, rmsqb={rmsqb}",flush=True)
             if best_rmsqb>rmsqb:
                 best_rmsqb=rmsqb
                 best_stencil_id=stencil_id

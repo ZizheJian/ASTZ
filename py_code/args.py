@@ -88,8 +88,8 @@ class args_c:
         self.padded_pos=self.padded_pos[:,0:4]
         self.pos_ch=self.padded_pos.shape[1]
         self.min_reference_num=1
-        self.regularization_a=1e0
-        self.parameter_relative_eb=1e-1
+        self.regularization_a=1e-1
+        self.parameter_relative_eb=1e-2
         self.pivot_ratio=2**9
         self.method_average=["FHDE"]
         self.method_residual=["FHDE"]
