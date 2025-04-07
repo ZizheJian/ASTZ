@@ -34,6 +34,7 @@ class args_c:
         self.pivot_num:int=0
         self.parameter:List[Tensor]=[]
         self.data_decompressed=tensor([],dtype=torch.float32)
+        self.bitstream_after_zstd:bytes=b""
         self.data_average=tensor([],dtype=torch.float32)
         self.data_average_decompressed=tensor([],dtype=torch.float32)
         self.data_residual=tensor([],dtype=torch.float32)
@@ -87,8 +88,9 @@ class args_c:
         self.padded_pos=self.padded_pos[:,0:4]
         self.pos_ch=self.padded_pos.shape[1]
         self.min_reference_num=1
-        self.parameter_relative_eb=1e-2
-        self.pivot_ratio=2**15
+        self.regularization_a=1e0
+        self.parameter_relative_eb=1e-1
+        self.pivot_ratio=2**9
         self.method_average=["FHDE"]
         self.method_residual=["FHDE"]
         self.FHDE_threshold_average=5

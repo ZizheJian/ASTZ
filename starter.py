@@ -13,7 +13,7 @@ def call_py_compress(project_directory_path:str,data_path:str,data_shape:List[in
     data_name=os.path.basename(data_path)
     stencil_path=os.path.join(project_directory_path,"stencil_list",data_name+".txt")
     command=f"python3 {os.path.join(project_directory_path,'py_code','compress.py')} "
-    command+=f"-f -i {data_path} -z {os.path.join(data_path,'.fhde')} -o {os.path.join(data_path,'.fhde.bin')} -c {stencil_path} "
+    command+=f"-f -i {data_path} -z {data_path+'.fhde'} -o {data_path+'.fhde.bin'} -c {stencil_path} "
     command+=f"-E REL {rel_eb} -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M {method} {FHDE_threshold} "
     print(command)
     process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
@@ -83,7 +83,7 @@ project_directory_path=os.path.dirname(starter_file_path)
 
 if not search_threshold:
     if not doughnut:
-        call_generate_stencil_list(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
+        # call_generate_stencil_list(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
         call_py_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
         # call_c_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
     else:

@@ -10,6 +10,8 @@ from blockify import blockify
 from quantize import quantize,quantize_parameter,quantize_parameter_with_baseline
 from shrink_data import shrink_data
 from expand_data import expand_data
+from huffman import huffman_encode
+import zstandard as zstd
 
 def any_pred_tgt_out_of_boundary_check(stencil:Tensor,tgt_data:Tensor)->bool:
     any_pred_tgt_out_of_boundary:bool=False
@@ -61,9 +63,8 @@ def generate_mat_A_B(cur_block_ext:Tensor,tgt_block_cropped:Tensor,mask_block_cr
         mat_A[:,ch_id]=cur_block_ext[:,j:1+j,1:-1,1:-1,1:-1][mask_block_cropped[:,1:2]]
         ch_id+=1
     mat_B=tgt_block_cropped[mask_block_cropped[:,1:2]]
-    a=1e-5
-    mat_A=torch.cat([mat_A,torch.eye(mat_A.shape[1])*a],dim=0)
-    mat_B=torch.cat([mat_B,torch.ones(param_num-args.pos_ch)*a/(param_num-args.pos_ch),torch.zeros(args.pos_ch)],dim=0)
+    mat_A=torch.cat([mat_A,torch.eye(mat_A.shape[1])*args.regularization_a],dim=0)
+    mat_B=torch.cat([mat_B,torch.ones(param_num-args.pos_ch)*args.regularization_a/(param_num-args.pos_ch),torch.zeros(args.pos_ch)],dim=0)
     return mat_A,mat_B
 
 def decode_conv(mat_X:Tensor,mask_core:Tensor,args:args_c)->Tensor:
@@ -273,9 +274,9 @@ def apply_stencil(args:args_c,stencil_manager:stencil_manager_c,part_name:str=""
                 conv=decode_conv(mat_X,mask_core,args)
                 h=F.conv3d(cur_block_ext,conv)
             if stencil_id==413:
-                quantize((tgt_block-h).permute(0,1,3,4,2),mask_block[:,1:2].permute(0,1,3,4,2),args.abs_eb,tgt_num,args)
-                cur_block.permute(0,1,3,4,2)[mask_block[:,1:2].permute(0,1,3,4,2)]=(h.permute(0,1,3,4,2)[mask_block[:,1:2].permute(0,1,3,4,2)]+
-                                                                                                    args.qb[args.qb_begin:args.qb_end]*2*args.abs_eb)
+                seq=(0,1,3,4,2)
+                quantize((tgt_block-h).permute(seq),mask_block[:,1:2].permute(seq),args.abs_eb,tgt_num,args)
+                cur_block.permute(seq)[mask_block[:,1:2].permute(seq)]=(h.permute(seq)[mask_block[:,1:2].permute(seq)]+args.qb[args.qb_begin:args.qb_end]*2*args.abs_eb)
             else:
                 quantize(tgt_block-h,mask_block[:,1:2],args.abs_eb,tgt_num,args)
                 cur_block[mask_block[:,1:2]]=h[mask_block[:,1:2]]+args.qb[args.qb_begin:args.qb_end]*2*args.abs_eb
@@ -291,16 +292,15 @@ def apply_stencil(args:args_c,stencil_manager:stencil_manager_c,part_name:str=""
         args.abs_eb=abs_eb_backup
     print(f"qb_num={args.qb_end}",flush=True)
     print(f"qb_min={args.qb.min().item()}, qb_max={args.qb.max().item()}",flush=True)
+    args.data_decompressed=cur_data[0,0]
+    max_err=(tgt_data-cur_data).abs().max().item()
+    print(f"max_err={max_err}",flush=True)
     with open(qb_path,"wb") as f:
         (args.qb+32768).numpy().tofile(f)
-    args.data_decompressed=cur_data[0,0]
-    print(args.qb.shape,flush=True)
     freq=torch.bincount(args.qb+32768,minlength=65536)
     with open(freq_path,"w") as f:
         for i in range(65536):
             f.write(str(i)+" "+str(freq[i].item())+"\n")
-    max_err=(tgt_data-cur_data).abs().max().item()
-    print(f"max_err={max_err}",flush=True)
 
 def apply_topology2(args:args_c,part_name:str):
     args.qb=torch.zeros(args.data_shape[0]*args.data_shape[1]*args.data_shape[2],dtype=torch.int32)
