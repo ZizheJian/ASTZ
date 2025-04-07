@@ -34,7 +34,7 @@ class args_c:
         self.pivot_num:int=0
         self.parameter:List[Tensor]=[]
         self.data_decompressed=tensor([],dtype=torch.float32)
-        self.bitstream_after_zstd:bytes=b""
+        self.bytestream_after_zstd:bytes=b""
         self.data_average=tensor([],dtype=torch.float32)
         self.data_average_decompressed=tensor([],dtype=torch.float32)
         self.data_residual=tensor([],dtype=torch.float32)
