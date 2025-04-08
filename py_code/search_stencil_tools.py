@@ -140,11 +140,13 @@ def search_stencil(args:args_c,stencil_manager:stencil_manager_c,part_name:str="
                     mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block,mask_block,mask_core,tgt_num,param_num,args)
                     lstsq_result=torch.linalg.lstsq(mat_A,mat_B,driver="gels")
                     mat_X=lstsq_result.solution
-                    mat_X=quantize_parameter(mat_X,args)
-                    err=mat_A@mat_X*2*args.parameter_eb-mat_B
-                    loss=(err**2).sum()/(tgt_num+param_num)
+                    _,mat_X=quantize_parameter_with_baseline(mat_X,mat_X_baseline,args)
+                    err=mat_A@mat_X-mat_B
+                    rmsqb_block_num=tgt_num+param_num
+                    loss=(err**2).sum()/rmsqb_block_num
                     rmsqb_block=(loss**0.5)/(2*args.abs_eb)
-                    rmsqb+=(rmsqb_block**2)*(tgt_num+param_num)
+                    rmsqb+=(rmsqb_block**2)*rmsqb_block_num
+                    rmsqb_num+=rmsqb_block_num
                 if args.method=="FHDE":
                     mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block,mask_block,mask_core,tgt_num,param_num,args)
                     lstsq_result=torch.linalg.lstsq(mat_A,mat_B,driver="gels")
@@ -224,7 +226,8 @@ def apply_stencil(args:args_c,stencil_manager:stencil_manager_c,part_name:str=""
     args.qb_begin=args.qb_end=0
     pred_gap=[2**math.ceil(np.log2(args.data_shape[i])) for i in range(3)]
     args.pivot=torch.zeros(args.data_shape[0]*args.data_shape[1]*args.data_shape[2],dtype=torch.float32)
-    args.pivot_num=0
+    args.pivot[0]=args.data[0,0,0]
+    args.pivot_num=1
     for i in range(len(args.stencil_id_list)-1,-1,-1):
         cur_shape=args.cur_shape_list[i]
         stencil_id=args.stencil_id_list[i]
@@ -250,11 +253,12 @@ def apply_stencil(args:args_c,stencil_manager:stencil_manager_c,part_name:str=""
             param_num=mask_core.sum().item()+args.pos_ch
             mat_X_baseline=torch.cat([torch.ones(param_num-args.pos_ch)/(param_num-args.pos_ch),torch.zeros(args.pos_ch)],dim=0)
             if args.method=="HDE":
-                mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block,mask_block,mask_core,args)
+                mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block,mask_block,mask_core,tgt_num,param_num,args)
                 lstsq_result=torch.linalg.lstsq(mat_A,mat_B,driver="gels")
                 mat_X=lstsq_result.solution
-                mat_X_quantized=quantize_parameter(mat_X,args)
-                conv=decode_conv(mat_X_quantized,mask_core,args)*2*args.parameter_eb
+                mat_X_bin,mat_X=quantize_parameter_with_baseline(mat_X,mat_X_baseline,args)
+                args.parameter.append(mat_X_bin)
+                conv=decode_conv(mat_X,mask_core,args)
                 h=F.conv3d(cur_block_ext,conv)
             if args.method=="FHDE":
                 mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block,mask_block,mask_core,tgt_num,param_num,args)

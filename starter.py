@@ -46,27 +46,22 @@ def call_c_compress(project_directory_path:str,data_path:str,data_shape:List[int
     output=("".join(output_lines)).strip()
     return output
 
-data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_datasets/APSU_TestData_004/APSU_TestData_004_cut.bin"
-data_shape:List[int]=[614,312,363]
+# data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_datasets/APSU_TestData_004/APSU_TestData_004_cut.bin"
+# data_shape:List[int]=[614,312,363]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/9-ID_CSSI_data/benchmarkdata/Avg_L0470_Double_exp_elong_siemens_1p00sampit_0p05inplane_patch1_of1_part0_001_cut.bin"
 # data_shape:List[int]=[150,453,390]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/EXAFEL/SDRBENCH-EXAFEL-data-13x1480x1552.f32"
 # data_shape:List[int]=[13,1480,1552]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_Kaz/xpcs-998x128x128.bin.f32"
 # data_shape:List[int]=[998,128,128]
-
-# For demonstrating convolution neural network. Use HDE or NET
-# data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_Kaz/xpcs-998x128x128.bin.f32"
-# data_shape:List[int]=[1,128,128]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/NYX/baryon_density_log10_cut.f32"
 # data_shape:List[str]=[256,256,256]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/NYX/baryon_density_cut.f32"
 # data_shape:List[str]=[256,256,256]
-
+data_path:str="/anvil/projects/x-cis240192/x-zjian1/ISABEL/P/Pf01.bin"
+data_shape:List[str]=[100,500,500]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/ISABEL/U/Uf48.bin"
 # data_shape:List[str]=[100,500,500]
-# data_path:str="./APSU_TestData_004_cut.bin"
-# data_path:str="./Uf48.bin"
 
 rel_eb:float=1e-3
 doughnut:bool=False
@@ -83,7 +78,7 @@ project_directory_path=os.path.dirname(starter_file_path)
 
 if not search_threshold:
     if not doughnut:
-        # call_generate_stencil_list(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
+        call_generate_stencil_list(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
         call_py_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
         # call_c_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
     else:

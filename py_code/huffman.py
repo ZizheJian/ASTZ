@@ -78,7 +78,7 @@ def build_huffman_codes(root:HuffmanNode,current_code="",codes=None):
     # 到达叶子节点，记录编码
     if root.value is not None:
         codes[root.value]=current_code or "0"  # 如果只有一个节点，默认给 "0"
-        return
+        return codes
     
     # 递归遍历左子树（0）和右子树（1）
     if root.left:

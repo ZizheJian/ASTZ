@@ -90,7 +90,7 @@ class args_c:
         self.min_reference_num=1
         self.regularization_a=1e-1
         self.parameter_relative_eb=1e-2
-        self.pivot_ratio=2**9
+        self.pivot_ratio=2**15
         self.method_average=["FHDE"]
         self.method_residual=["FHDE"]
         self.FHDE_threshold_average=5
