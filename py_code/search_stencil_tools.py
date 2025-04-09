@@ -10,8 +10,7 @@ from blockify import blockify
 from quantize import quantize,quantize_with_pos,quantize_parameter_with_baseline
 from shrink_data import shrink_data
 from expand_data import expand_data
-from huffman import huffman_encode
-import zstandard as zstd
+from temp_code.print_pca import print_pca
 
 def any_pred_tgt_out_of_boundary_check(stencil:Tensor,tgt_data:Tensor)->bool:
     any_pred_tgt_out_of_boundary:bool=False

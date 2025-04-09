@@ -65,7 +65,7 @@ data_shape:List[str]=[100,500,500]
 
 rel_eb:float=1e-3
 doughnut:bool=False
-method:str="FHDE"
+method:str="HDE"
 method_average:str="FHDE"
 method_residual:str="FHDE"
 FHDE_threshold=2
@@ -78,8 +78,8 @@ project_directory_path=os.path.dirname(starter_file_path)
 
 if not search_threshold:
     if not doughnut:
-        # call_generate_stencil_list(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
-        call_py_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
+        call_generate_stencil_list(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
+        # call_py_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
         # call_c_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
     else:
         raise NotImplementedError
