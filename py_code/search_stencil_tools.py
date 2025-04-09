@@ -7,7 +7,7 @@ from torch.nn import functional as F
 from args import args_c
 from stencil_manager import stencil_manager_c
 from blockify import blockify
-from quantize import quantize,quantize_parameter,quantize_parameter_with_baseline
+from quantize import quantize,quantize_with_pos,quantize_parameter_with_baseline
 from shrink_data import shrink_data
 from expand_data import expand_data
 from huffman import huffman_encode
@@ -224,6 +224,7 @@ def apply_stencil(args:args_c,stencil_manager:stencil_manager_c,part_name:str=""
     mask[0,1,0,0,0]=True
     args.qb=torch.zeros(args.data_shape[0]*args.data_shape[1]*args.data_shape[2],dtype=torch.int32)
     args.qb_begin=args.qb_end=0
+    # args.qb_tensor=torch.zeros([1,1,1,1,1],dtype=torch.int32)
     pred_gap=[2**math.ceil(np.log2(args.data_shape[i])) for i in range(3)]
     args.pivot=torch.zeros(args.data_shape[0]*args.data_shape[1]*args.data_shape[2],dtype=torch.float32)
     args.pivot[0]=args.data[0,0,0]
@@ -284,7 +285,8 @@ def apply_stencil(args:args_c,stencil_manager:stencil_manager_c,part_name:str=""
                 seq=(0,1,2,4,3)
             elif stencil_id==413:
                 seq=(0,1,3,4,2)
-            quantize((tgt_block-h).permute(seq),mask_block[:,1:2].permute(seq),args.abs_eb,tgt_num,args)
+            quantize((tgt_block-h).permute(seq),mask_block[:,1:2].permute(seq),tgt_num,args)
+            # quantize_with_pos(block_id,tgt_block-h,mask_block[:,1:2],args)
             cur_block.permute(seq)[mask_block[:,1:2].permute(seq)]=(h.permute(seq)[mask_block[:,1:2].permute(seq)]+args.qb[args.qb_begin:args.qb_end]*2*args.abs_eb)
             irr_mask=(args.qb[args.qb_begin:args.qb_end].abs()>32767)
             args.pivot[args.pivot_num:args.pivot_num+irr_mask.sum().item()]=tgt_block[mask_block[:,1:2]][irr_mask]

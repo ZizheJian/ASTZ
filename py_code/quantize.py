@@ -3,26 +3,22 @@ from torch import Tensor
 from typing import Tuple
 from args import args_c
 
-def quantize(delta:Tensor,mask:Tensor,eb:float,tgt_num:int,args:args_c)->None:
+def quantize(delta:Tensor,mask:Tensor,tgt_num:int,args:args_c)->None:
     mask_positive=(delta>=0) & mask
     mask_negative=(~mask_positive) & mask
     temp_qb=torch.zeros_like(delta,dtype=torch.int)
-    temp_qb[mask_positive]=torch.ceil((delta[mask_positive]-eb)/(2*eb)).int()
-    temp_qb[mask_negative]=torch.floor((delta[mask_negative]+eb)/(2*eb)).int()
+    temp_qb[mask_positive]=torch.ceil((delta[mask_positive]-args.abs_eb)/(2*args.abs_eb)).int()
+    temp_qb[mask_negative]=torch.floor((delta[mask_negative]+args.abs_eb)/(2*args.abs_eb)).int()
     args.qb_begin=args.qb_end
     args.qb_end+=tgt_num
     args.qb[args.qb_begin:args.qb_end]=temp_qb[mask].int()
 
-def quantize_with_pos(block_id:Tuple[int,int,int],delta:Tensor,mask:Tensor,eb:float,args:args_c)->None:
+def quantize_with_pos(block_id:Tuple[int,int,int],delta:Tensor,mask:Tensor,args:args_c)->None:
     mask_positive=(delta>=0) & mask
     mask_negative=(~mask_positive) & mask
-    mask_num=mask.sum().item()
     temp_qb=torch.zeros_like(delta,dtype=torch.int)
-    temp_qb[mask_positive]=torch.ceil((delta[mask_positive]-eb)/(2*eb)).int()
-    temp_qb[mask_negative]=torch.floor((delta[mask_negative]+eb)/(2*eb)).int()
-    args.qb_begin=args.qb_end
-    args.qb_end+=mask_num
-    args.qb[args.qb_begin:args.qb_end]=temp_qb[mask]
+    temp_qb[mask_positive]=torch.ceil((delta[mask_positive]-args.abs_eb)/(2*args.abs_eb)).int()
+    temp_qb[mask_negative]=torch.floor((delta[mask_negative]+args.abs_eb)/(2*args.abs_eb)).int()
     args.qb_tensor[:,:,block_id[0]:block_id[0]+args.model_block_step[0],
                        block_id[1]:block_id[1]+args.model_block_step[1],
                        block_id[2]:block_id[2]+args.model_block_step[2]][mask]=temp_qb[mask]

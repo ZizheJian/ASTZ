@@ -46,6 +46,8 @@ if not args.doughnut:
     with open(os.path.join(args.project_root,"sorted_parameter.txt"),"w") as f:
         for i in range(sorted_parameter.size(0)):
             f.write(f"{sorted_parameter[i].item()}\n")
+    
+    # plotter.plot_qb(args.qb_tensor[0,0,0],args.data_name+"_qb")
 else:
     raise NotImplementedError
     ########压缩average_data########

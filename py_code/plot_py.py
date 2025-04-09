@@ -13,13 +13,28 @@ class plot_c:
             data_min=data.min().item()
         if data_max is None:
             data_max=data.max().item()
-        data=((data.numpy()-data_min)/(data_max-data_min)).clip(0,1)
-        h=data*5/6
+        data_np=((data.numpy()-data_min)/(data_max-data_min)).clip(0,1)
+        h=data_np*5/6
         s=np.ones_like(h)
         v=np.ones_like(h)
         hsv=np.stack((h,s,v),axis=-1)
         rgb=hsv_to_rgb(hsv)
         plt.imsave(os.path.join(self.project_root,"png",f"{name}.png"),rgb)
+    def plot_qb(self,qb:Tensor,name:str)->None:
+        qb_np=qb.numpy()
+        rgb=np.zeros((qb_np.shape[0],qb_np.shape[1],3),dtype=np.float32)
+        for i in range(qb_np.shape[0]):
+            for j in range(qb_np.shape[1]):
+                if qb_np[i,j]>=0:
+                    rgb[i,j,0]=1
+                    rgb[i,j,1]=1-np.log2(qb_np[i,j]+1)/np.log2(32768)
+                    rgb[i,j,2]=1-np.log2(qb_np[i,j]+1)/np.log2(32768)
+                else:
+                    rgb[i,j,0]=1-np.log2(-qb_np[i,j]+1)/np.log2(32768)
+                    rgb[i,j,1]=1-np.log2(-qb_np[i,j]+1)/np.log2(32768)
+                    rgb[i,j,2]=1
+        plt.imsave(os.path.join(self.project_root,"png",f"{name}.png"),rgb)
+
 
 # class plot_c:
 #     def __init__(self,args:args_c)->None:

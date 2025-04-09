@@ -18,6 +18,9 @@ def expand_data(cur_data:Tensor,tgt_data:Tensor,mask:Tensor,pred_gap:List[int],a
     new_cur_data[:,:,0::expand_gap[0],0::expand_gap[1],0::expand_gap[2]]=cur_data
     new_mask=torch.zeros((1,2)+tgt_data.shape[2:5],dtype=torch.bool)
     new_mask[:,0,0::expand_gap[0],0::expand_gap[1],0::expand_gap[2]]=mask[:,0]
+    # new_qb_tensor=torch.zeros((1,1)+tgt_data.shape[2:5],dtype=torch.int)
+    # new_qb_tensor[:,0,0::expand_gap[0],0::expand_gap[1],0::expand_gap[2]]=args.qb_tensor[:,0]
+    # args.qb_tensor=new_qb_tensor
     for i0,i1,i2 in product(range(0,2),repeat=3):
         new_mask[:,1,i0::2,i1::2,i2::2]=stencil[i0,i1,i2]
     return new_cur_data,tgt_data,new_mask,pred_gap
