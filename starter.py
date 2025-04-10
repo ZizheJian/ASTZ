@@ -46,81 +46,156 @@ def call_c_compress(project_directory_path:str,data_path:str,data_shape:List[int
     output=("".join(output_lines)).strip()
     return output
 
+def call_sz3_compress(project_directory_path:str,data_path:str,data_shape:List[int],rel_eb:float):
+    sz3_project_path="/home/x-zjian1/SZ3"
+    os.chdir(os.path.join(sz3_project_path,"build"))
+    # os.system(f"cmake -DCMAKE_INSTALL_PREFIX:PATH={os.path.join(sz3_project_path,'install')} ..")
+    os.system("make")
+    os.system("make install")
+    command=f"sz3 -i {data_path} -z {data_path}.sz3 -o {data_path}.sz3.bin -f -M REL -R {rel_eb} -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -a"
+    process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+    output_lines=[]
+    for line in iter(process.stdout.readline,""):
+        print(line,end="",flush=True)
+        output_lines.append(line)
+    command=f"calculateSSIM -f {data_path} {data_path}.sz3.bin {data_shape[2]} {data_shape[1]} {data_shape[0]}"
+    process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+    for line in iter(process.stdout.readline,""):
+        print(line,end="",flush=True)
+        output_lines.append(line)
+    output=("".join(output_lines)).strip()
+    os.chdir(project_directory_path)
+    return output
+
+def call_hpez_compress(project_directory_path:str,data_path:str,data_shape:List[int],rel_eb:float):
+    hpez_project_path="/home/x-zjian1/HPEZ"
+    os.chdir(os.path.join(hpez_project_path,"build"))
+    os.system("make")
+    os.system("make install")
+    command=f"hpez -i {data_path} -z {data_path}.hpez -o {data_path}.hpez.bin -f -M REL {rel_eb} -q 4 -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -a"
+    process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+    output_lines=[]
+    for line in iter(process.stdout.readline,""):
+        print(line,end="",flush=True)
+        output_lines.append(line)
+    command=f"calculateSSIM -f {data_path} {data_path}.hpez.bin {data_shape[2]} {data_shape[1]} {data_shape[0]}"
+    process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+    for line in iter(process.stdout.readline,""):
+        print(line,end="",flush=True)
+        output_lines.append(line)
+    output=("".join(output_lines)).strip()
+    os.chdir(project_directory_path)
+    return output
+
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_datasets/APSU_TestData_004/APSU_TestData_004_cut.bin"
 # data_shape:List[int]=[614,312,363]
+# rel_eb_list=[1e-1,3e-2,1e-2,3e-3,1e-3,3e-4,1e-4]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/9-ID_CSSI_data/benchmarkdata/Avg_L0470_Double_exp_elong_siemens_1p00sampit_0p05inplane_patch1_of1_part0_001_cut.bin"
 # data_shape:List[int]=[150,453,390]
+# data_path:str="/anvil/projects/x-cis240192/x-zjian1/NYX/baryon_density_cut.f32"
+# data_shape:List[str]=[256,256,256]
+# data_path:str="/anvil/projects/x-cis240192/x-zjian1/NYX/baryon_density_log10_cut.f32"
+# data_shape:List[str]=[256,256,256]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/EXAFEL/SDRBENCH-EXAFEL-data-13x1480x1552.f32"
 # data_shape:List[int]=[13,1480,1552]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_Kaz/xpcs-998x128x128.bin.f32"
 # data_shape:List[int]=[998,128,128]
-# data_path:str="/anvil/projects/x-cis240192/x-zjian1/NYX/baryon_density_log10_cut.f32"
-# data_shape:List[str]=[256,256,256]
-# data_path:str="/anvil/projects/x-cis240192/x-zjian1/NYX/baryon_density_cut.f32"
-# data_shape:List[str]=[256,256,256]
-data_path:str="/anvil/projects/x-cis240192/x-zjian1/ISABEL/P/Pf01.bin"
-data_shape:List[str]=[100,500,500]
+# data_path:str="/anvil/projects/x-cis240192/x-zjian1/ISABEL/P/Pf01.bin"
+# data_shape:List[str]=[100,500,500]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/ISABEL/U/Uf48.bin"
 # data_shape:List[str]=[100,500,500]
 
 rel_eb:float=1e-3
 doughnut:bool=False
-method:str="HDE"
+method:str="FHDE"
 method_average:str="FHDE"
 method_residual:str="FHDE"
-FHDE_threshold=2
+FHDE_threshold=4
 FHDE_threshold_average=FHDE_threshold
 FHDE_threshold_residual=FHDE_threshold
 search_threshold:bool=False
+large_scale_testing:bool=True
 
+data_name=os.path.basename(data_path)
 starter_file_path=os.path.abspath(__file__)
 project_directory_path=os.path.dirname(starter_file_path)
 
-if not search_threshold:
-    if not doughnut:
-        call_generate_stencil_list(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
-        # call_py_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
-        # call_c_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
-    else:
-        raise NotImplementedError
-else:
-    th_preset=FHDE_threshold
-    while True:
-        threshold_dict={}
-        with open("threshold.txt","r") as f:
-            for line in f.readlines():
-                splited_line=line.split(" ")
-                threshold_dict[int(splited_line[0])]=float(splited_line[1])
-        if len(threshold_dict)==0:
-            print("threshold.txt is empty")
-            th=th_preset
+if not large_scale_testing:
+    if not search_threshold:
+        if not doughnut:
+            call_generate_stencil_list(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
+            call_py_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
+            # call_c_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
         else:
-            for index in range(len(threshold_dict)):
-                th=list(threshold_dict.keys())[index]
-                print(f"index={index},th={th}")
-                found_unsearched=False
-                possible_directions=[-1,0,1]
-                possible_directions=[i for i in possible_directions if th+i>0]
-                random.shuffle(possible_directions)
-                for d_th in possible_directions:
-                    new_th=th+d_th
-                    if new_th not in threshold_dict:
-                        th=new_th
-                        found_unsearched=True
-                if not found_unsearched:
-                    continue
-                else:
-                    break
-        print(f"current th={th}")
-        call_generate_stencil_list(project_directory_path,data_path,data_shape,rel_eb,method,th)
-        output=call_py_compress(project_directory_path,data_path,data_shape,rel_eb,method,th)
-        cr=float(output.split("\n")[-1].split(" ")[-1])
-        threshold_dict[th]=cr
-        sorted_threshold_dict=sorted(threshold_dict.items(),key=lambda x:x[1],reverse=True)
-        with open("threshold.txt","w") as f:
-            for key,value in sorted_threshold_dict:
-                f.write(f"{key} {value}\n")
-        print(f"th={th},cr={cr}")
+            raise NotImplementedError
+    else:
+        th_preset=FHDE_threshold
+        while True:
+            threshold_dict={}
+            try:
+                with open(f"threshold/{data_name}.txt","r") as f:
+                    for line in f.readlines():
+                        splited_line=line.split(" ")
+                        threshold_dict[int(splited_line[0])]=float(splited_line[1])
+            except FileNotFoundError:
+                os.makedirs("threshold",exist_ok=True)
+                with open(f"threshold/{data_name}.txt","w") as f:
+                    pass
+            if len(threshold_dict)==0:
+                print("threshold record is empty")
+                th=th_preset
+            else:
+                for index in range(len(threshold_dict)):
+                    th=list(threshold_dict.keys())[index]
+                    print(f"index={index},th={th}")
+                    found_unsearched=False
+                    possible_directions=[-1,0,1]
+                    possible_directions=[i for i in possible_directions if th+i>0]
+                    random.shuffle(possible_directions)
+                    for d_th in possible_directions:
+                        new_th=th+d_th
+                        if new_th not in threshold_dict:
+                            th=new_th
+                            found_unsearched=True
+                    if not found_unsearched:
+                        continue
+                    else:
+                        break
+            print(f"current th={th}")
+            call_generate_stencil_list(project_directory_path,data_path,data_shape,rel_eb,method,th)
+            output=call_py_compress(project_directory_path,data_path,data_shape,rel_eb,method,th)
+            cr=float(output.split("\n")[-5].split(" ")[-1])
+            threshold_dict[th]=cr
+            sorted_threshold_dict=sorted(threshold_dict.items(),key=lambda x:x[1],reverse=True)
+            with open(f"threshold/{data_name}.txt","w") as f:
+                for key,value in sorted_threshold_dict:
+                    f.write(f"{key} {value}\n")
+            print(f"th={th},cr={cr}")
+else:
+    for rel_eb in rel_eb_list:
+        if not os.path.exists(f"large_scale_record/{data_name}.txt"):
+            with open(f"large_scale_record/{data_name}.txt","w") as f:
+                f.write("")
+        call_generate_stencil_list(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
+        output=call_py_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
+        cr=float(output.split("\n")[-5].split(" ")[-1])
+        psnr=float(output.split("\n")[-2].split(" ")[-1])
+        ssim=float(output.split("\n")[-1].split(" ")[-1])
+        with open(f"large_scale_record/{data_name}.txt","a") as f:
+            f.write(f"{cr} {32/cr} {psnr} {ssim} ")
+        output=call_sz3_compress(project_directory_path,data_path,data_shape,rel_eb)
+        cr=float(output.split("\n")[-7].split(" ")[-1])
+        psnr=float(output.split("\n")[-10].split(",")[-2].split(" ")[-1])
+        ssim=float(output.split("\n")[-1].split(" ")[-1])
+        with open(f"large_scale_record/{data_name}.txt","a") as f:
+            f.write(f"{cr} {32/cr} {psnr} {ssim} ")
+        output=call_hpez_compress(project_directory_path,data_path,data_shape,rel_eb)
+        cr=float(output.split("\n")[-7].split(" ")[-1])
+        psnr=float(output.split("\n")[-10].split(",")[-2].split(" ")[-1])
+        ssim=float(output.split("\n")[-1].split(" ")[-1])
+        with open(f"large_scale_record/{data_name}.txt","a") as f:
+            f.write(f"{cr} {32/cr} {psnr} {ssim}\n")
+        
 
 #APSU_TestData_004_cut
 #eb=1e-2,   th=4,   fhde_cr=517.092041,     fhde_psnr=60.652073,    fhde_ssim=0.610035

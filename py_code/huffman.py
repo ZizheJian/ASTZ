@@ -59,15 +59,29 @@ def compress_huffman_tree(root:"HuffmanNode",max_num:int,min_num:int)->bitarray:
             compressed.append(0)  # 0 表示内部节点
             preorder31(node.left)
             preorder31(node.right)
+    def preorder63(node:"HuffmanNode"):
+        if node is None:
+            return
+        if node.value is not None:
+            compressed.append(1)
+            value_bits = bitarray(format(node.value & 0xFFFFFFFFFFFFFFFF, '064b'))
+            compressed.extend(value_bits)
+        else:
+            compressed.append(0)
+            preorder63(node.left)
+            preorder63(node.right)
     
-    if -32768<=min_num and max_num<=32767:
+    if -(2**15)<=min_num and max_num<=(2**15-1):
         compressed.append(0)
         preorder15(root)
-    elif -2147483648<=min_num and max_num<=2147483647:
+    elif -(2**31)<=min_num and max_num<=(2**31-1):
         compressed.append(1)
         preorder31(root)
+    elif -(2**63)<=min_num and max_num<=(2**63-1):
+        compressed.append(2)
+        preorder63(root)
     else:
-        raise NotImplementedError("没有写qb超过2^31的情况")
+        raise NotImplementedError("没有写qb超过2^63的情况")
     return compressed
 
 # 生成 Huffman 编码表
