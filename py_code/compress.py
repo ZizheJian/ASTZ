@@ -81,7 +81,7 @@ with open(args.data_compressed_path,"wb") as f:
     f.write(args.bytestream_after_zstd)
 with open(args.data_decompressed_path,"wb") as f:
     args.data_decompressed.numpy().tofile(f)
-calculateSSIM_command=f"calculateSSIM -f {args.data_path} {args.data_decompressed_path} {args.data_shape[2]} {args.data_shape[1]} {args.data_shape[0]}"
-calculateSSIM_ouput=subprocess.check_output(calculateSSIM_command,shell=True,encoding="utf-8")
-ssim=float(calculateSSIM_ouput.strip().split("\n")[-1].split()[-1])
-print(f"ssim= {ssim:.6f}",flush=True)
+# calculateSSIM_command=f"calculateSSIM -f {args.data_path} {args.data_decompressed_path} {args.data_shape[2]} {args.data_shape[1]} {args.data_shape[0]}"
+# calculateSSIM_ouput=subprocess.check_output(calculateSSIM_command,shell=True,encoding="utf-8")
+# ssim=float(calculateSSIM_ouput.strip().split("\n")[-1].split()[-1])
+# print(f"ssim= {ssim:.6f}",flush=True)

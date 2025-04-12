@@ -150,22 +150,28 @@ def search_stencil(args:args_c,stencil_manager:stencil_manager_c,part_name:str="
                     mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block,mask_block,mask_core,tgt_num,param_num,args)
                     lstsq_result=torch.linalg.lstsq(mat_A,mat_B,driver="gels")
                     mat_X=lstsq_result.solution
-                    err=mat_A[:-param_num]@mat_X-mat_B[:-param_num]
-                    valid_equations=(err.abs()<=args.abs_eb*FHDE_threshold)
-                    if valid_equations.sum().item()>0:
-                        mat_A_filtered=torch.cat((mat_A[:-param_num][valid_equations],mat_A[-param_num:]),dim=0)
-                        mat_B_filtered=torch.cat((mat_B[:-param_num][valid_equations],mat_B[-param_num:]),dim=0)
-                        lstsq_result=torch.linalg.lstsq(mat_A_filtered,mat_B_filtered,driver="gels")
-                        mat_X=lstsq_result.solution
-                        _,mat_X=quantize_parameter_with_baseline(mat_X,mat_X_baseline,args)
-                        err=mat_A_filtered@mat_X-mat_B_filtered
-                        rmsqb_block_num=valid_equations.sum().item()+param_num
-                        loss=(err**2).sum()/rmsqb_block_num
-                    else:
+                    if args.fix_corefficient:
                         mat_X[:]=mat_X_baseline
                         err=mat_A@mat_X-mat_B
                         rmsqb_block_num=tgt_num+param_num
                         loss=(err**2).sum()/rmsqb_block_num
+                    else:
+                        err=mat_A[:-param_num]@mat_X-mat_B[:-param_num]
+                        valid_equations=(err.abs()<=args.abs_eb*FHDE_threshold)
+                        if valid_equations.sum().item()>0:
+                            mat_A_filtered=torch.cat((mat_A[:-param_num][valid_equations],mat_A[-param_num:]),dim=0)
+                            mat_B_filtered=torch.cat((mat_B[:-param_num][valid_equations],mat_B[-param_num:]),dim=0)
+                            lstsq_result=torch.linalg.lstsq(mat_A_filtered,mat_B_filtered,driver="gels")
+                            mat_X=lstsq_result.solution
+                            _,mat_X=quantize_parameter_with_baseline(mat_X,mat_X_baseline,args)
+                            err=mat_A_filtered@mat_X-mat_B_filtered
+                            rmsqb_block_num=valid_equations.sum().item()+param_num
+                            loss=(err**2).sum()/rmsqb_block_num
+                        else:
+                            mat_X[:]=mat_X_baseline
+                            err=mat_A@mat_X-mat_B
+                            rmsqb_block_num=tgt_num+param_num
+                            loss=(err**2).sum()/rmsqb_block_num
                     rmsqb_block=(loss**0.5)/(2*args.abs_eb)
                     rmsqb+=(rmsqb_block**2)*rmsqb_block_num
                     rmsqb_num+=rmsqb_block_num
@@ -243,6 +249,7 @@ def apply_stencil(args:args_c,stencil_manager:stencil_manager_c,part_name:str=""
         abs_eb_backup=args.abs_eb
         args.abs_eb*=(0.95**i)
         for block_id,cur_block_pad,tgt_block,mask_block_pad in blockify(cur_data,tgt_data,mask,args,padding=1):
+            # print(f"block_id={block_id}",flush=True)
             cur_block_ext=generate_cur_block_ext(cur_block_pad,mask_block_pad,args)
             cur_block=cur_block_ext[:,0:1,1:-1,1:-1,1:-1]
             mask_block=mask_block_pad[:,:,1:-1,1:-1,1:-1]
@@ -264,15 +271,18 @@ def apply_stencil(args:args_c,stencil_manager:stencil_manager_c,part_name:str=""
                 mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block,mask_block,mask_core,tgt_num,param_num,args)
                 lstsq_result=torch.linalg.lstsq(mat_A,mat_B,driver="gels")
                 mat_X=lstsq_result.solution
-                err=mat_A[:-param_num]@mat_X-mat_B[:-param_num]
-                valid_equations=(err.abs()<=args.abs_eb*FHDE_threshold)
-                if valid_equations.sum().item()>0:
-                    mat_A_filtered=torch.cat((mat_A[:-param_num][valid_equations],mat_A[-param_num:]),dim=0)
-                    mat_B_filtered=torch.cat((mat_B[:-param_num][valid_equations],mat_B[-param_num:]),dim=0)
-                    lstsq_result=torch.linalg.lstsq(mat_A_filtered,mat_B_filtered,driver="gels")
-                    mat_X=lstsq_result.solution
-                else:
+                if args.fix_corefficient:
                     mat_X[:]=mat_X_baseline
+                else:
+                    err=mat_A[:-param_num]@mat_X-mat_B[:-param_num]
+                    valid_equations=(err.abs()<=args.abs_eb*FHDE_threshold)
+                    if valid_equations.sum().item()>0:
+                        mat_A_filtered=torch.cat((mat_A[:-param_num][valid_equations],mat_A[-param_num:]),dim=0)
+                        mat_B_filtered=torch.cat((mat_B[:-param_num][valid_equations],mat_B[-param_num:]),dim=0)
+                        lstsq_result=torch.linalg.lstsq(mat_A_filtered,mat_B_filtered,driver="gels")
+                        mat_X=lstsq_result.solution
+                    else:
+                        mat_X[:]=mat_X_baseline
                 mat_X_bin,mat_X=quantize_parameter_with_baseline(mat_X,mat_X_baseline,args)
                 args.parameter.append(mat_X_bin)
                 conv=decode_conv(mat_X,mask_core,args)
@@ -290,6 +300,7 @@ def apply_stencil(args:args_c,stencil_manager:stencil_manager_c,part_name:str=""
             irr_mask=(args.qb[args.qb_begin:args.qb_end].abs()>32767)
             args.pivot[args.pivot_num:args.pivot_num+irr_mask.sum().item()]=tgt_block[mask_block[:,1:2]][irr_mask]
             args.pivot_num+=irr_mask.sum().item()
+            cur_block.permute(seq)[mask_block[:,1:2].permute(seq)][irr_mask]=tgt_block.permute(seq)[mask_block[:,1:2].permute(seq)][irr_mask]
             args.qb[args.qb_begin:args.qb_end][irr_mask]=-32768
             cur_data[:,:,block_id[0]:block_id[0]+args.model_block_step[0],
                         block_id[1]:block_id[1]+args.model_block_step[1],

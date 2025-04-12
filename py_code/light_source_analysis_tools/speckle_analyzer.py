@@ -172,7 +172,7 @@ class Speckle_analyzer:
         
 
 
-file_path = 'Avg_L0471_Double_exp_elong_siemens_1p00sampit_0p05inplane_patch1_of1_part1_001.h5'
+file_path = '/anvil/projects/x-cis240192/x-zjian1/APS_DYS/9-ID_CSSI_data/benchmarkdata/Avg_L0471_Double_exp_elong_siemens_1p00sampit_0p05inplane_patch1_of1_part1_001.h5'
 dataset_name = "/exchange/data/"
 speckle_analyzer = Speckle_analyzer(file_path, dataset_name)
 #to use in your loss function

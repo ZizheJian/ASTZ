@@ -11,6 +11,8 @@ args=args_c()
 plotter=plot_c(args)
 stencil_manager=stencil_manager_c()
 read_dataset(args)
+# plotter.plot_data(args.data[0],args.data_name)
+# exit()
 if not args.doughnut:
     search_stencil(args,stencil_manager)
 else:

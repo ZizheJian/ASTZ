@@ -15,7 +15,9 @@ snapshot_number = int(sys.argv[1]) - 1
 # data_path = "../illumine-data/APS_DYS/xpcs_datasets/APSU_TestData_006/APSU_TestData_006.h5"
 # data_path = "../illumine-data/APS_DYS/xpcs_datasets/APSU_TestData_008/APSU_TestData_008.h5"
 # data_path = "../illumine-data/APS_DYS/xpcs_datasets/APSU_TestData_010/APSU_TestData_010.h5"
-data_path = "../illumine-data/APS_DYS/9-ID_CSSI_data/benchmarkdata/Avg_L0470_Double_exp_elong_siemens_1p00sampit_0p05inplane_patch1_of1_part0_001.h5"
+# data_path = "../illumine-data/APS_DYS/9-ID_CSSI_data/benchmarkdata/Avg_L0470_Double_exp_elong_siemens_1p00sampit_0p05inplane_patch1_of1_part0_001.h5"
+data_path="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/9-ID_CSSI_data/benchmarkdata/Avg_L0470_Double_exp_elong_siemens_1p00sampit_0p05inplane_patch1_of1_part0_001.h5"
+data_path="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/9-ID_CSSI_data/benchmarkdata/Avg_L0471_Double_exp_elong_siemens_1p00sampit_0p05inplane_patch1_of1_part1_001.h5"
 
 # Analyze data.
 with h5py.File(data_path, 'r') as file:

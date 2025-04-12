@@ -1,4 +1,4 @@
-import h5py
+import h5py,hdf5plugin
 import numpy as np
 import os, sys
 import matplotlib.pyplot as plt
@@ -8,12 +8,14 @@ import matplotlib.transforms   as mtransforms
 
 snapshot_number = int(sys.argv[1]) - 1
 
-data_path = "../illumine-data/APS_DYS/xpcs_datasets/E017_CeramicGlass_L2Mq0_060C_att00_001/E017_CeramicGlass_L2Mq0_060C_att00_001_001.h5"
+# data_path = "../illumine-data/APS_DYS/xpcs_datasets/E017_CeramicGlass_L2Mq0_060C_att00_001/E017_CeramicGlass_L2Mq0_060C_att00_001_001.h5"
 # data_path = "../illumine-data/APS_DYS/xpcs_datasets/E018_CeramicGlass_L2Mq0_060C_att00_001/E018_CeramicGlass_L2Mq0_060C_att00_001_001.h5"
 # data_path = "../illumine-data/APS_DYS/xpcs_datasets/APSU_TestData_004/APSU_TestData_004.h5"
 # data_path = "../illumine-data/APS_DYS/xpcs_datasets/APSU_TestData_006/APSU_TestData_006.h5"
 # data_path = "../illumine-data/APS_DYS/xpcs_datasets/APSU_TestData_008/APSU_TestData_008.h5"
 # data_path = "../illumine-data/APS_DYS/xpcs_datasets/APSU_TestData_010/APSU_TestData_010.h5"
+data_path = "/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_datasets/APSU_TestData_004/APSU_TestData_004.h5"
+data_path = "/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_datasets/E017_CeramicGlass_L2Mq0_060C_att00_001/E017_CeramicGlass_L2Mq0_060C_att00_001_001.h5"
 
 # Analyze data.
 with h5py.File(data_path, 'r') as file:
