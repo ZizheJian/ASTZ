@@ -14,16 +14,11 @@ class args_c:
         self.stencil_path:str=""
         self.data_shape:List[int]=[]
         self.rel_eb:float=0
-        self.doughnut:bool=False
         self.method:str=""
         self.FHDE_threshold:float=0
         self.model_block_step=[]
         self.min_reference_num:int=0
-        self.method_average:List[str]=[]
-        self.method_residual:List[str]=[]
         self.parameter_relative_eb:float=0
-        self.FHDE_threshold_average:float=0
-        self.FHDE_threshold_residual:float=0
         self.pivot_ratio:int=0
         #仅初始化的参数
         self.data_min:float=0
@@ -35,11 +30,6 @@ class args_c:
         self.parameter:List[Tensor]=[]
         self.data_decompressed=tensor([],dtype=torch.float32)
         self.bytestream_after_zstd:bytes=b""
-        self.data_average=tensor([],dtype=torch.float32)
-        self.data_average_decompressed=tensor([],dtype=torch.float32)
-        self.data_residual=tensor([],dtype=torch.float32)
-        self.data_residual_decompressed=tensor([],dtype=torch.float32)
-        self.data_shape_average:List[int]=[]
         self.qb=tensor([],dtype=torch.int32)
         self.qb_tensor=tensor([],dtype=torch.float32)
         self.qb_begin:int=0
@@ -65,7 +55,6 @@ class args_c:
         parser.add_argument("-E",dest="err",nargs="+")
         parser.add_argument("-3",dest="data_shape",nargs=3,type=int)
         parser.add_argument("-M",dest="method",nargs="+")
-        parser.add_argument("-doughnut",dest="doughnut",action="store_true")
         temp_args=parser.parse_args()
         self.code_root=os.path.dirname(__file__)
         self.project_root=os.path.dirname(self.code_root)
@@ -76,7 +65,6 @@ class args_c:
         self.stencil_path=temp_args.stencil_path
         self.data_shape=[temp_args.data_shape[2],temp_args.data_shape[1],temp_args.data_shape[0]]
         self.rel_eb=float(temp_args.err[1])
-        self.doughnut=temp_args.doughnut
         self.method=temp_args.method[0]
         self.FHDE_threshold=float(temp_args.method[1])
         self.model_block_step=[32,32,32]
@@ -91,8 +79,4 @@ class args_c:
         self.regularization_a=1e-1
         self.parameter_relative_eb=1e-2
         self.pivot_ratio=2**15
-        self.fix_corefficient:bool=False
-        self.method_average=["FHDE"]
-        self.method_residual=["FHDE"]
-        self.FHDE_threshold_average=5
-        self.FHDE_threshold_residual=5
+        self.fix_coefficient:bool=False

@@ -16,6 +16,7 @@ snapshot_number = int(sys.argv[1]) - 1
 # data_path = "../illumine-data/APS_DYS/xpcs_datasets/APSU_TestData_010/APSU_TestData_010.h5"
 data_path = "/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_datasets/APSU_TestData_004/APSU_TestData_004.h5"
 data_path = "/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_datasets/E017_CeramicGlass_L2Mq0_060C_att00_001/E017_CeramicGlass_L2Mq0_060C_att00_001_001.h5"
+data_path = "/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_new_from_miaoqi/D0131_US-Cup2_a0010_f005000_r00001.h5"
 
 # Analyze data.
 with h5py.File(data_path, 'r') as file:

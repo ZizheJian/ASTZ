@@ -80,17 +80,8 @@ def decode_conv(mat_X:Tensor,mask_core:Tensor,args:args_c)->Tensor:
     return conv
 
 def search_stencil(args:args_c,stencil_manager:stencil_manager_c,part_name:str=""):
-    if part_name=="":
-        FHDE_threshold=args.FHDE_threshold
-        stencil_path=args.stencil_path
-    # elif part_name=="average":
-    #     FHDE_threshold=args.FHDE_threshold_average
-    #     stencil_path=os.path.join(args.project_root,f"stencil_list/{args.data_name}_average.txt")
-    # elif part_name=="residual":
-    #     FHDE_threshold=args.FHDE_threshold_residual
-    #     stencil_path=os.path.join(args.project_root,f"stencil_list/{args.data_name}_residual.txt")
-    else:
-        raise Exception("part_name参数错误")
+    FHDE_threshold=args.FHDE_threshold
+    stencil_path=args.stencil_path
     tgt_data=copy.deepcopy(args.data).unsqueeze(0).unsqueeze(0)
     mask=torch.zeros((1,2)+args.data.shape,dtype=torch.bool)#mask[0,0]表示已压缩数据，mask[0,1]表示正在压缩的数据。mask_block[0,2]表示未出界数据
     mask[:,0]=True
@@ -150,7 +141,7 @@ def search_stencil(args:args_c,stencil_manager:stencil_manager_c,part_name:str="
                     mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block,mask_block,mask_core,tgt_num,param_num,args)
                     lstsq_result=torch.linalg.lstsq(mat_A,mat_B,driver="gels")
                     mat_X=lstsq_result.solution
-                    if args.fix_corefficient:
+                    if args.fix_coefficient:
                         mat_X[:]=mat_X_baseline
                         err=mat_A@mat_X-mat_B
                         rmsqb_block_num=tgt_num+param_num
@@ -199,23 +190,10 @@ def search_stencil(args:args_c,stencil_manager:stencil_manager_c,part_name:str="
     print(f"compressed_data_num={compressed_data_num}",flush=True)
 
 def apply_stencil(args:args_c,stencil_manager:stencil_manager_c,part_name:str=""):
-    if part_name=="":
-        FHDE_threshold=args.FHDE_threshold
-        stencil_path=args.stencil_path
-        qb_path=os.path.join(args.project_root,"qb",f"{args.data_name}.qb")
-        freq_path=os.path.join(args.project_root,"freq",f"{args.data_name}.txt")
-    # elif part_name=="average":
-    #     FHDE_threshold=args.FHDE_threshold_average
-    #     topology_list_file_name=f"/home/x-zjian1/jzzz/topology_list/{args.data_name}_average.txt"
-    #     qb_path=f"/home/x-zjian1/jzzz/qb/{args.data_name}_average.bin"
-    #     freq_path=f"/home/x-zjian1/jzzz/freq/{args.data_name}_average.txt"
-    # elif part_name=="residual":
-    #     FHDE_threshold=args.FHDE_threshold_residual
-    #     topology_list_file_name=f"/home/x-zjian1/jzzz/topology_list/{args.data_name}_residual.txt"
-    #     qb_path=f"/home/x-zjian1/jzzz/qb/{args.data_name}_residual.bin"
-    #     freq_path=f"/home/x-zjian1/jzzz/freq/{args.data_name}_residual.txt"
-    else:
-        raise Exception("part_name参数错误")
+    FHDE_threshold=args.FHDE_threshold
+    stencil_path=args.stencil_path
+    qb_path=os.path.join(args.project_root,"qb",f"{args.data_name}.qb")
+    freq_path=os.path.join(args.project_root,"freq",f"{args.data_name}.txt")
     args.cur_shape_list=[]
     args.stencil_id_list=[]
     with open(stencil_path,"r") as f:
@@ -271,7 +249,7 @@ def apply_stencil(args:args_c,stencil_manager:stencil_manager_c,part_name:str=""
                 mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block,mask_block,mask_core,tgt_num,param_num,args)
                 lstsq_result=torch.linalg.lstsq(mat_A,mat_B,driver="gels")
                 mat_X=lstsq_result.solution
-                if args.fix_corefficient:
+                if args.fix_coefficient:
                     mat_X[:]=mat_X_baseline
                 else:
                     err=mat_A[:-param_num]@mat_X-mat_B[:-param_num]
@@ -319,21 +297,3 @@ def apply_stencil(args:args_c,stencil_manager:stencil_manager_c,part_name:str=""
     with open(freq_path,"w") as f:
         for i in range(65536):
             f.write(str(i)+" "+str(freq[i].item())+"\n")
-
-def apply_topology2(args:args_c,part_name:str):
-    args.qb=torch.zeros(args.data_shape[0]*args.data_shape[1]*args.data_shape[2],dtype=torch.int32)
-    args.qb_begin=args.qb_end=0
-    quantize(args.data,torch.ones_like(args.data,dtype=torch.bool),args.abs_eb,args)
-    cur_data=torch.zeros_like(args.data)
-    cur_data+=args.qb[args.qb_begin:args.qb_end].reshape(args.data_shape)*2*args.abs_eb
-    print(f"qb_num={args.qb_end}",flush=True)
-    print(f"qb_min={args.qb.min().item()}, qb_max={args.qb.max().item()}",flush=True)
-    with open(f"/home/x-zjian1/jzzz/qb/{args.data_name}_{part_name}.bin","wb") as f:
-        (args.qb+32768).numpy().tofile(f)
-    freq=torch.bincount(args.qb+32768,minlength=65536)
-    with open(f"/home/x-zjian1/jzzz/freq/{args.data_name}_{part_name}.txt","w") as f:
-        for i in range(65536):
-            f.write(str(i)+" "+str(freq[i].item())+"\n")
-    max_err=(args.data-cur_data).abs().max().item()
-    print(f"max_err={max_err}",flush=True)
-    return cur_data
