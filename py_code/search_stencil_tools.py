@@ -139,6 +139,7 @@ def search_stencil(args:args_c,stencil_manager:stencil_manager_c,part_name:str="
                     rmsqb_num+=rmsqb_block_num
                 if args.method=="FHDE":
                     mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block,mask_block,mask_core,tgt_num,param_num,args)
+                    # print_pca(mat_A,args.min_reference_num)
                     lstsq_result=torch.linalg.lstsq(mat_A,mat_B,driver="gels")
                     mat_X=lstsq_result.solution
                     if args.fix_coefficient:

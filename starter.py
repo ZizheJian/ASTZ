@@ -39,15 +39,13 @@ def call_py_compress(project_directory_path:str,data_path:str,data_shape:List[in
     return cr,psnr,ssim
 
 def call_c_compress(project_directory_path:str,data_path:str,data_shape:List[int],rel_eb:float,method:str,FHDE_threshold:int):
-    data_name=os.path.basename(data_path)
     os.chdir("c_code")
     os.makedirs("build",exist_ok=True)
     os.chdir("build")
     build_path=os.getcwd()
-    subprocess.run(f"cmake -DCMAKE_INSTALL_PREFIX:PATH={os.path.join(project_directory_path,'c_code','install')} ..",cwd=build_path,shell=True,encoding="utf-8")
+    # subprocess.run(f"cmake -DCMAKE_INSTALL_PREFIX:PATH={os.path.join(project_directory_path,'c_code','install')} ..",cwd=build_path,shell=True,encoding="utf-8")
     subprocess.run("make",cwd=build_path,shell=True,encoding="utf-8")
     print(build_path)
-    # subprocess.run("make install",cwd=build_path,shell=True,encoding="utf-8")
     os.chdir(project_directory_path)
     command=f"{build_path +'/fhde'} -f -i {data_path} -o {data_path+'.fhde'} "
     command+=f"-3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M REL {rel_eb} -a -c {'./topology_list/Uf48.bin.dat.txt'}"
@@ -60,8 +58,8 @@ def call_c_compress(project_directory_path:str,data_path:str,data_shape:List[int
     output=("".join(output_lines)).strip()
     return output
 
-def call_sz3_compress(project_directory_path:str,data_path:str,data_shape:List[int],rel_eb:float,calculate_ssim:bool=False):
-    command=f"sz3 -i {data_path} -z {data_path}_{rel_eb}.sz3 -o {data_path}_{rel_eb}.sz3.bin -f -M REL -R {rel_eb} -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -a"
+def call_sz3_compress(bin_path:str,calculateSSIM_path:str,data_path:str,data_shape:List[int],rel_eb:float,calculate_ssim:bool=False):
+    command=f"{bin_path} -i {data_path} -z {data_path}_{rel_eb}.sz3 -o {data_path}_{rel_eb}.sz3.bin -f -M REL -R {rel_eb} -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -a"
     process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
     output_lines=[]
     for line in iter(process.stdout.readline,""):
@@ -73,7 +71,7 @@ def call_sz3_compress(project_directory_path:str,data_path:str,data_shape:List[i
     ssim=0
     if calculate_ssim:
         output_lines=[]
-        command=f"calculateSSIM -f {data_path} {data_path}_{rel_eb}.sz3.bin {data_shape[2]} {data_shape[1]} {data_shape[0]}"
+        command=f"{calculateSSIM_path} -f {data_path} {data_path}_{rel_eb}.sz3.bin {data_shape[2]} {data_shape[1]} {data_shape[0]}"
         process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
         for line in iter(process.stdout.readline,""):
             print(line,end="",flush=True)
@@ -82,8 +80,8 @@ def call_sz3_compress(project_directory_path:str,data_path:str,data_shape:List[i
         ssim=float(output.split("\n")[-1].split(" ")[-1])
     return cr,psnr,ssim
 
-def call_hpez_compress(project_directory_path:str,data_path:str,data_shape:List[int],rel_eb:float,calculate_ssim:bool=False):
-    command=f"hpez -i {data_path} -z {data_path}_{rel_eb}.hpez -o {data_path}_{rel_eb}.hpez.bin -f -M REL {rel_eb} -q 4 -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -a"
+def call_hpez_compress(bin_path:str,calculateSSIM_path:str,data_path:str,data_shape:List[int],rel_eb:float,calculate_ssim:bool=False):
+    command=f"{bin_path} -i {data_path} -z {data_path}_{rel_eb}.hpez -o {data_path}_{rel_eb}.hpez.bin -f -M REL {rel_eb} -q 4 -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -a"
     process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
     output_lines=[]
     for line in iter(process.stdout.readline,""):
@@ -95,7 +93,7 @@ def call_hpez_compress(project_directory_path:str,data_path:str,data_shape:List[
     ssim=0
     if calculate_ssim:
         output_lines=[]
-        command=f"calculateSSIM -f {data_path} {data_path}_{rel_eb}.hpez.bin {data_shape[2]} {data_shape[1]} {data_shape[0]}"
+        command=f"{calculateSSIM_path} -f {data_path} {data_path}_{rel_eb}.hpez.bin {data_shape[2]} {data_shape[1]} {data_shape[0]}"
         process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
         for line in iter(process.stdout.readline,""):
             print(line,end="",flush=True)
@@ -104,12 +102,12 @@ def call_hpez_compress(project_directory_path:str,data_path:str,data_shape:List[
         ssim=float(output.split("\n")[-1].split(" ")[-1])
     return cr,psnr,ssim
 
-def call_zfp_compress(project_directory_path:str,data_path:str,data_shape:List[int],rel_eb:float,calculate_ssim:bool=False):
+def call_zfp_compress(bin_path:str,calculateSSIM_path:str,data_path:str,data_shape:List[int],rel_eb:float,calculate_ssim:bool=False):
     data=torch.from_file(data_path,dtype=torch.float32,size=data_shape[0]*data_shape[1]*data_shape[2])
     data_max=data.max()
     data_min=data.min()
     abs_eb=rel_eb*(data_max-data_min)
-    command=f"zfp -s -i {data_path} -z {data_path}_{rel_eb}.zfp -o {data_path}_{rel_eb}.zfp.bin -f -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -a {abs_eb}"
+    command=f"{bin_path} -s -i {data_path} -z {data_path}_{rel_eb}.zfp -o {data_path}_{rel_eb}.zfp.bin -f -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -a {abs_eb}"
     process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
     output_lines=[]
     for line in iter(process.stdout.readline,""):
@@ -121,7 +119,7 @@ def call_zfp_compress(project_directory_path:str,data_path:str,data_shape:List[i
     ssim=0
     if calculate_ssim:
         output_lines=[]
-        command=f"calculateSSIM -f {data_path} {data_path}_{rel_eb}.zfp.bin {data_shape[2]} {data_shape[1]} {data_shape[0]}"
+        command=f"{calculateSSIM_path} -f {data_path} {data_path}_{rel_eb}.zfp.bin {data_shape[2]} {data_shape[1]} {data_shape[0]}"
         process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
         for line in iter(process.stdout.readline,""):
             print(line,end="",flush=True)
@@ -130,11 +128,8 @@ def call_zfp_compress(project_directory_path:str,data_path:str,data_shape:List[i
         ssim=float(output.split("\n")[-1].split(" ")[-1])
     return cr,psnr,ssim
 
-data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_datasets/APSU_TestData_004/APSU_TestData_004_cut.bin"
-data_shape:List[int]=[256,390,453]
-# rel_eb_list=[1e-1,1e-2,1e-3,1e-4]
-# data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_datasets/APSU_TestData_004/APSU_TestData_004_slice.bin"
-# data_shape:List[int]=[1,1558,1813]
+# data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_datasets/APSU_TestData_004/APSU_TestData_004_cut.bin"
+# data_shape:List[int]=[256,390,453]
 # rel_eb_list=[1e-1,1e-2,1e-3,1e-4]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_datasets/APSU_TestData_004/APSU_TestData_004.bin"
 # data_shape:List[int]=[1024,1558,1813]
@@ -142,26 +137,24 @@ data_shape:List[int]=[256,390,453]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_new_from_miaoqi/D0131_US-Cup2_a0010_f005000_r00001_cut.bin"
 # data_shape:List[int]=[625,270,258]
 # rel_eb_list=[3e-1,1e-1,3e-2,1e-2]
-# rel_eb_list=[3e-1]
-# data_path:str="/anvil/projects/x-cis240192/x-zjian1/EXAFEL/SDRBENCH-EXAFEL-data-13x1480x1552.f32"
+# data_path:str="/anvil/projects/x-cis240192/x-zjian1/EXAFEL/SDRBENCH-EXAFEL-data-130x1480x1552_cut.f32"
 # data_shape:List[int]=[13,1480,1552]
 # rel_eb_list=[1e-1,1e-2,1e-3,1e-4]
-# rel_eb_list=[1e-2]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/EXAFEL/SDRBENCH-EXAFEL-data-130x1480x1552.f32"
 # data_shape:List[int]=[130,1480,1552]
 # rel_eb_list=[1e-1,1e-2,1e-3,1e-4]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_Kaz/xpcs-998x128x128.bin.f32"
 # data_shape:List[int]=[998,128,128]
 # rel_eb_list=[3e-1,1e-1,3e-2,1e-2]
-# data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_datasets/E017_CeramicGlass_L2Mq0_060C_att00_001/E017_CeramicGlass_L2Mq0_060C_att00_001_001_cut.bin"
-# data_shape:List[int]=[204,363,312]
-# rel_eb_list=[1e-1,1e-2,3e-3,1e-3,3e-4,1e-4]
-# data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_datasets/E017_CeramicGlass_L2Mq0_060C_att00_001/E017_CeramicGlass_L2Mq0_060C_att00_001_001_slice.bin"
-# data_shape:List[int]=[1,1813,1558]
-# rel_eb_list=[1e-1,1e-2,3e-3,1e-3,3e-4,1e-4]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_datasets/E017_CeramicGlass_L2Mq0_060C_att00_001/E017_CeramicGlass_L2Mq0_060C_att00_001_001.bin"
 # data_shape:List[int]=[1024,1813,1558]
 # rel_eb_list=[1e-1,1e-2,3e-3,1e-3,3e-4,1e-4]
+
+# Here I have added the path to ~/.bashrc. If you haven't, change the path to the location of your installation.
+sz3_path:str="sz3"
+hpez_path:str="hpez"
+zfp_path:str="zfp"
+calculateSSIM_path:str="calculateSSIM"
 
 rel_eb:float=1e-4
 method:str="FHDE"
@@ -232,14 +225,14 @@ else:
         with open(f"large_scale_record/{data_name}.txt","a") as f:
             f.write(f"{cr} {32/cr} {psnr} {ssim} ")
         ########SZ3########
-        cr,psnr,ssim=call_sz3_compress(project_directory_path,data_path,data_shape,rel_eb,calculate_ssim)
+        cr,psnr,ssim=call_sz3_compress(sz3_path,calculateSSIM_path,data_path,data_shape,rel_eb,calculate_ssim)
         with open(f"large_scale_record/{data_name}.txt","a") as f:
             f.write(f"{cr} {32/cr} {psnr} {ssim} ")
         ########HPEZ########
-        cr,psnr,ssim=call_hpez_compress(project_directory_path,data_path,data_shape,rel_eb,calculate_ssim)
+        cr,psnr,ssim=call_hpez_compress(hpez_path,calculateSSIM_path,data_path,data_shape,rel_eb,calculate_ssim)
         with open(f"large_scale_record/{data_name}.txt","a") as f:
             f.write(f"{cr} {32/cr} {psnr} {ssim} ")
         ########ZFP########
-        # cr,psnr,ssim=call_zfp_compress(project_directory_path,data_path,data_shape,rel_eb,calculate_ssim)
+        # cr,psnr,ssim=call_zfp_compress(zfp_path,calculateSSIM_path,data_path,data_shape,rel_eb,calculate_ssim)
         # with open(f"large_scale_record/{data_name}.txt","a") as f:
         #     f.write(f"{cr} {32/cr} {psnr} {ssim}\n")
