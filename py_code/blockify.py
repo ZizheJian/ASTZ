@@ -5,25 +5,9 @@ from typing import Generator,Tuple
 from torch.nn import functional as F
 from args import args_c
 
-def find_window(cur_data:Tensor,mask:Tensor,args:args_c,padding:int=0)->float:
-    bin_edges=np.arange(-1,1+args.abs_eb,args.abs_eb)
-    counts,_=np.histogram(cur_data[mask[:,0:1]].numpy(),bins=bin_edges)
-    counts=counts[:-1]+counts[1:]
-    center=np.argmax(counts)
-    center=bin_edges[center+1]
-    return center
-
 def blockify(cur_data:Tensor,tgt_data:Tensor,mask:Tensor,args:args_c,padding:int=0)->Generator[Tuple[Tuple[int],Tensor,Tensor,Tensor],None,None]:
-    average_cur_data=find_window(cur_data,mask,args,padding)
-    temp_cur_data=F.pad(cur_data,(padding,)*6,value=average_cur_data)
-    temp_mask=F.pad(mask,(padding,)*6)
-    temp_mask=torch.cat([temp_mask,torch.ones((1,1)+temp_mask.shape[2:],dtype=torch.bool)],dim=1)
-    temp_mask[:,2,0,:,:]=False
-    temp_mask[:,2,-1,:,:]=False
-    temp_mask[:,2,:,0,:]=False
-    temp_mask[:,2,:,-1,:]=False
-    temp_mask[:,2,:,:,0]=False
-    temp_mask[:,2,:,:,-1]=False
+    temp_cur_data=F.pad(cur_data,(padding,)*6,mode="replicate")
+    temp_mask=F.pad(F.pad(mask,(0,)*6+(0,1),value=True),(padding,)*6,value=False)
     for i0 in range(0,tgt_data.shape[2],args.model_block_step[0]):
         for i1 in range(0,tgt_data.shape[3],args.model_block_step[1]):
             for i2 in range(0,tgt_data.shape[4],args.model_block_step[2]):

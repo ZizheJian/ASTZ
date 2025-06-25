@@ -1,42 +1,8 @@
 import subprocess,os,random,torch
 from typing import List
-
-def call_generate_stencil_list(project_directory_path:str,data_path:str,data_shape:List[int],rel_eb:float,method:str,FHDE_threshold:int):
-    data_name=os.path.basename(data_path)
-    os.makedirs(os.path.join(project_directory_path,"stencil_list",f"{rel_eb}"),exist_ok=True)
-    stencil_path=os.path.join(project_directory_path,"stencil_list",f"{rel_eb}",data_name+".txt")
-    command=f"python3 {os.path.join(project_directory_path,'py_code','generate_stencil_list.py')} "
-    command+=f"-f -i {data_path} -c {stencil_path} -E REL {rel_eb} -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M {method} {FHDE_threshold} "
-    print(command)
-    subprocess.run(command,shell=True,encoding="utf-8")
-
-def call_py_compress(project_directory_path:str,data_path:str,data_shape:List[int],rel_eb:float,method:str,FHDE_threshold:int,calculate_ssim:bool=False):
-    data_name=os.path.basename(data_path)
-    os.makedirs(os.path.join(project_directory_path,"stencil_list",f"{rel_eb}"),exist_ok=True)
-    stencil_path=os.path.join(project_directory_path,"stencil_list",f"{rel_eb}",data_name+".txt")
-    command=f"python3 {os.path.join(project_directory_path,'py_code','compress.py')} "
-    command+=f"-f -i {data_path} -z {data_path}_{rel_eb}.fhde -o {data_path}_{rel_eb}.fhde.bin -c {stencil_path} "
-    command+=f"-E REL {rel_eb} -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M {method} {FHDE_threshold} "
-    print(command)
-    process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-    output_lines=[]
-    for line in iter(process.stdout.readline,""):
-        print(line,end="",flush=True)
-        output_lines.append(line)
-    output=("".join(output_lines)).strip()
-    cr=float(output.split("\n")[-4].split(" ")[-1])
-    psnr=float(output.split("\n")[-1].split(" ")[-1])
-    ssim=0
-    if calculate_ssim:
-        output_lines=[]
-        command=f"calculateSSIM -f {data_path} {data_path}_{rel_eb}.fhde.bin {data_shape[2]} {data_shape[1]} {data_shape[0]}"
-        process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-        for line in iter(process.stdout.readline,""):
-            print(line,end="",flush=True)
-            output_lines.append(line)
-        output=("".join(output_lines)).strip()
-        ssim=float(output.split("\n")[-1].split(" ")[-1])
-    return cr,psnr,ssim
+from py_code.starter_functions.call_generate_stencil_list import call_generate_stencil_list
+from py_code.starter_functions.call_py_compress import call_py_compress,call_py_decompress
+from py_code.starter_functions.call_sz3_compress import call_sz3_compress
 
 def call_c_compress(project_directory_path:str,data_path:str,data_shape:List[int],rel_eb:float,method:str,FHDE_threshold:int):
     os.chdir("c_code")
@@ -57,28 +23,6 @@ def call_c_compress(project_directory_path:str,data_path:str,data_shape:List[int
         output_lines.append(line)
     output=("".join(output_lines)).strip()
     return output
-
-def call_sz3_compress(bin_path:str,calculateSSIM_path:str,data_path:str,data_shape:List[int],rel_eb:float,calculate_ssim:bool=False):
-    command=f"{bin_path} -i {data_path} -z {data_path}_{rel_eb}.sz3 -o {data_path}_{rel_eb}.sz3.bin -f -M REL -R {rel_eb} -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -a"
-    process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-    output_lines=[]
-    for line in iter(process.stdout.readline,""):
-        print(line,end="",flush=True)
-        output_lines.append(line)
-    output=("".join(output_lines)).strip()
-    cr=float(output.split("\n")[-3].split(" ")[-1])
-    psnr=float(output.split("\n")[-6].split(",")[-2].split(" ")[-1])
-    ssim=0
-    if calculate_ssim:
-        output_lines=[]
-        command=f"{calculateSSIM_path} -f {data_path} {data_path}_{rel_eb}.sz3.bin {data_shape[2]} {data_shape[1]} {data_shape[0]}"
-        process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-        for line in iter(process.stdout.readline,""):
-            print(line,end="",flush=True)
-            output_lines.append(line)
-        output=("".join(output_lines)).strip()
-        ssim=float(output.split("\n")[-1].split(" ")[-1])
-    return cr,psnr,ssim
 
 def call_hpez_compress(bin_path:str,calculateSSIM_path:str,data_path:str,data_shape:List[int],rel_eb:float,calculate_ssim:bool=False):
     command=f"{bin_path} -i {data_path} -z {data_path}_{rel_eb}.hpez -o {data_path}_{rel_eb}.hpez.bin -f -M REL {rel_eb} -q 4 -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -a"
@@ -128,9 +72,10 @@ def call_zfp_compress(bin_path:str,calculateSSIM_path:str,data_path:str,data_sha
         ssim=float(output.split("\n")[-1].split(" ")[-1])
     return cr,psnr,ssim
 
-# data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_datasets/APSU_TestData_004/APSU_TestData_004_cut.bin"
-# data_shape:List[int]=[256,390,453]
-# rel_eb_list=[1e-1,1e-2,1e-3,1e-4]
+data_path:str="/anvil/projects/x-cis240192/x-zjian1-in-cis240192/APS_DYS/xpcs_datasets/APSU_TestData_004/block/APSU_TestData_004_float_block.bin_000"
+data_type:str="uint16"
+data_shape:List[int]=[256,390,454]
+rel_eb_list=[1e-1,1e-2,1e-3,1e-4]
 # data_path:str="/anvil/projects/x-cis240192/x-zjian1/APS_DYS/xpcs_datasets/APSU_TestData_004/APSU_TestData_004.bin"
 # data_shape:List[int]=[1024,1558,1813]
 # rel_eb_list=[1e-1,1e-2,1e-3,1e-4]
@@ -156,8 +101,17 @@ hpez_path:str="hpez"
 zfp_path:str="zfp"
 calculateSSIM_path:str="calculateSSIM"
 
-rel_eb:float=1e-4
-method:str="FHDE"
+#GSL_FHDE="generate stencil list using FHDE"
+#GSL_HDE="generate stencil list using HDE"
+#py_FHDE="python compress using FHDE"
+#py_HDE="python compress using HDE"
+#c_FHDE="c compress using FHDE"
+#c_HDE="c compress using HDE"
+#sz3="sz3 compress"
+#hpez="HPEZ compress"
+#zfp="ZFP compress"
+method_list:List[str]=["GSL_FHDE","py_FHDE"]
+rel_eb:float=1e-3
 FHDE_threshold=4
 search_threshold:bool=False
 large_scale_testing:bool=False
@@ -166,12 +120,19 @@ calculate_ssim:bool=False
 data_name=os.path.basename(data_path)
 starter_file_path=os.path.abspath(__file__)
 project_directory_path=os.path.dirname(starter_file_path)
+rel_eb_float:str=f"{rel_eb:.0e}"
 
 if not large_scale_testing:
     if not search_threshold:
-        call_generate_stencil_list(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
-        call_py_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
-        # call_c_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
+        for method in method_list:
+            if method=="GSL_FHDE":
+                call_generate_stencil_list(project_directory_path,data_path,data_type,data_shape,rel_eb,"FHDE",FHDE_threshold)
+            elif method=="py_FHDE":
+                call_py_compress(project_directory_path,data_path,data_type,data_shape,rel_eb,"FHDE",FHDE_threshold,calculate_ssim)
+                call_py_decompress()
+                # call_c_compress(project_directory_path,data_path,data_shape,rel_eb,method,FHDE_threshold)
+            elif method=="sz3":
+                cr,psnr,ssim=call_sz3_compress(sz3_path,calculateSSIM_path,data_path,data_type,data_shape,rel_eb,calculate_ssim)
     else:
         th_preset=FHDE_threshold
         while True:
@@ -213,7 +174,7 @@ if not large_scale_testing:
             with open(f"threshold/{rel_eb}/{data_name}.txt","w") as f:
                 for key,value in sorted_threshold_dict:
                     f.write(f"{key} {value}\n")
-            print(f"th={th},cr={cr}")
+            print(f"th={th},cr={cr}")     
 else:
     for rel_eb in rel_eb_list:
         if not os.path.exists(f"large_scale_record/{data_name}.txt"):

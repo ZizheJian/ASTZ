@@ -3,12 +3,12 @@ from torch import Tensor
 from typing import Tuple
 from args import args_c
 
-def quantize(delta:Tensor,mask:Tensor,tgt_num:int,args:args_c)->None:
+def quantize(delta:Tensor,mask:Tensor,tgt_num:int,args:args_c,eb:float)->None:
     mask_positive=(delta>=0) & mask
     mask_negative=(~mask_positive) & mask
     temp_qb=torch.zeros_like(delta,dtype=torch.int)
-    temp_qb[mask_positive]=torch.ceil((delta[mask_positive]-args.abs_eb)/(2*args.abs_eb)).int()
-    temp_qb[mask_negative]=torch.floor((delta[mask_negative]+args.abs_eb)/(2*args.abs_eb)).int()
+    temp_qb[mask_positive]=torch.ceil((delta[mask_positive]-eb)/(2*eb)).int()
+    temp_qb[mask_negative]=torch.floor((delta[mask_negative]+eb)/(2*eb)).int()
     args.qb_begin=args.qb_end
     args.qb_end+=tgt_num
     args.qb[args.qb_begin:args.qb_end]=temp_qb[mask].int()
