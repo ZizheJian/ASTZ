@@ -1,4 +1,4 @@
-import torch,copy,math,os
+import torch,copy,math,os,random
 import numpy as np
 from typing import Tuple
 from itertools import product
@@ -65,22 +65,6 @@ def generate_mat_A_B(cur_block_ext:Tensor,tgt_block_cropped:Tensor,mask_block_cr
     mat_A=torch.cat([mat_A,args.regularization_a*torch.eye(mat_A.shape[1])],dim=0)
     mat_B=torch.cat([mat_B,args.regularization_a*torch.ones(param_num-args.pos_ch_num)/(param_num-args.pos_ch_num),torch.zeros(args.pos_ch_num)],dim=0)
     return mat_A,mat_B
-#为什么这里和parameter_relative_eb无关？
-#理论上来说，参数的bin被放大了100倍，那么这里的mat_A和mat_B中正则化的部分应该放大10000倍
-#另外，要让参数和误差使用统一的huffman tree吗？要让参数被threshold限制吗？
-
-def decode_conv(mat_X:Tensor,mask_core:Tensor,args:args_c)->Tensor:
-    conv=torch.zeros(1,1+args.pos_ch_num,3,3,3)
-    ch_id=0
-    for i0,i1,i2 in product(range(-1,2),repeat=3):
-        if mask_core[0,0,i0+1,i1+1,i2+1]==False:
-            continue
-        conv[0,0,i0+1,i1+1,i2+1]=mat_X[ch_id]
-        ch_id+=1
-    for j in range(1,1+args.pos_ch_num):
-        conv[0,j,1,1,1]=mat_X[ch_id]
-        ch_id+=1
-    return conv
 
 def search_stencil(args:args_c,stencil_manager:stencil_manager_c):
     FHDE_threshold=args.FHDE_threshold
@@ -239,21 +223,21 @@ def apply_stencil(args:args_c,stencil_manager:stencil_manager_c,part_name:str=""
                 mat_X=lstsq_result.solution
                 mat_X_bin,mat_X=quantize_parameter_with_baseline(mat_X,mat_X_baseline,args)
                 args.parameter.append(mat_X_bin)
-                # conv=decode_conv(mat_X,mask_core,args)
-                # h=F.conv3d(cur_block_ext,conv)
                 h=mat_A[:-param_num]@mat_X
             if args.method=="FHDE":
                 mat_A,mat_B=generate_mat_A_B(cur_block_ext,tgt_block,mask_block,mask_core,tgt_num,param_num,args)
+                mat_A_small=torch.cat((mat_A[:-param_num][::args.sampling_gap],mat_A[-param_num:]),dim=0)
+                mat_B_small=torch.cat((mat_B[:-param_num][::args.sampling_gap],mat_B[-param_num:]),dim=0)
                 if args.fix_coefficient:
-                    mat_X=mat_X.clone()
+                    mat_X=mat_X_baseline.clone()
                 else:
-                    lstsq_result=torch.linalg.lstsq(mat_A,mat_B,driver="gels")
+                    lstsq_result=torch.linalg.lstsq(mat_A_small,mat_B_small,driver="gels")
                     mat_X=lstsq_result.solution
-                    err=mat_A[:-param_num]@mat_X-mat_B[:-param_num]
+                    err=mat_A_small[:-param_num]@mat_X-mat_B_small[:-param_num]
                     valid_equations=(err.abs()<=args.abs_eb*FHDE_threshold)
                     if valid_equations.sum().item()>0:
-                        mat_A_filtered=torch.cat((mat_A[:-param_num][valid_equations],mat_A[-param_num:]),dim=0)
-                        mat_B_filtered=torch.cat((mat_B[:-param_num][valid_equations],mat_B[-param_num:]),dim=0)
+                        mat_A_filtered=torch.cat((mat_A_small[:-param_num][valid_equations],mat_A_small[-param_num:]),dim=0)
+                        mat_B_filtered=torch.cat((mat_B_small[:-param_num][valid_equations],mat_B_small[-param_num:]),dim=0)
                         lstsq_result=torch.linalg.lstsq(mat_A_filtered,mat_B_filtered,driver="gels")
                         mat_X=lstsq_result.solution
                     else:
@@ -264,11 +248,11 @@ def apply_stencil(args:args_c,stencil_manager:stencil_manager_c,part_name:str=""
             h_block=cur_block.clone()
             h_block[mask_block[:,1:2]]=h
             seq=(0,1,2,3,4)
-            if stencil_id==411:
+            if stencil_id in [411,211,212,251]:
                 seq=(0,1,2,3,4)
-            elif stencil_id==412:
+            elif stencil_id in [412,213,214,252]:
                 seq=(0,1,2,4,3)
-            elif stencil_id==413:
+            elif stencil_id in [413,215,216,253]:
                 seq=(0,1,3,4,2)
             quantize((tgt_block-h_block).permute(seq),mask_block[:,1:2].permute(seq),tgt_num,args,current_eb)
             cur_block.permute(seq)[mask_block[:,1:2].permute(seq)]=(h_block.permute(seq)[mask_block[:,1:2].permute(seq)]+args.qb[args.qb_begin:args.qb_end]*2*current_eb)

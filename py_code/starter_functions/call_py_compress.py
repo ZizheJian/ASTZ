@@ -2,11 +2,11 @@ import os,subprocess
 from typing import List
 
 def call_py_compress(project_directory_path:str,data_path:str,data_type:str,data_shape:List[int],rel_eb:float,method:str,FHDE_threshold:int,calculate_ssim:bool=False):
-    data_name:str=os.path.basename(data_path)
-    rel_eb_str:str=f"{rel_eb:.0e}"
+    data_name=os.path.basename(data_path)
+    rel_eb_str=f"{rel_eb:.0e}"
     stencil_path=os.path.join(project_directory_path,"stencil_list",rel_eb_str,data_name+".txt")
     command=f"python3 {os.path.join(project_directory_path,'py_code','compress.py')} "
-    command+=f"-{data_type} -i {data_path} -z {data_path}_{rel_eb_str}.fhde -o {data_path}_{rel_eb_str}.fhde.bin -c {stencil_path} "
+    command+=f"-{data_type} -i '{data_path}' -z '{data_path}_{rel_eb_str}.fhde' -o '{data_path}_{rel_eb_str}.fhde.bin' -c '{stencil_path}' "
     command+=f"-E REL {rel_eb_str} -3 {data_shape[2]} {data_shape[1]} {data_shape[0]} -M {method} {FHDE_threshold} "
     print(command)
     process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
@@ -20,7 +20,7 @@ def call_py_compress(project_directory_path:str,data_path:str,data_type:str,data
     ssim=0
     if calculate_ssim:
         output_lines=[]
-        command=f"calculateSSIM -f {data_path} {data_path}_{rel_eb_str}.fhde.bin {data_shape[2]} {data_shape[1]} {data_shape[0]}"
+        command=f"calculateSSIM -f '{data_path}' '{data_path}_{rel_eb_str}.fhde.bin' {data_shape[2]} {data_shape[1]} {data_shape[0]}"
         process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
         for line in iter(process.stdout.readline,""):
             print(line,end="",flush=True)

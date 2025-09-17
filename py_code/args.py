@@ -29,7 +29,7 @@ class args_c:
         if len(temp_args.data_shape)==3:
             self.data_shape=[temp_args.data_shape[2],temp_args.data_shape[1],temp_args.data_shape[0]]
         else:
-            self.data_shape=[temp_args.data_shape[1],temp_args.data_shape[0],1]
+            self.data_shape=[1,temp_args.data_shape[1],temp_args.data_shape[0]]
         self.eb_type=temp_args.err[0]
         if self.eb_type=="ABS":
             self.abs_eb=float(temp_args.err[1])
@@ -65,8 +65,9 @@ class args_c:
         self.padded_pos=self.padded_pos[:,0:4]
         self.pos_ch_num=self.padded_pos.shape[1]
         self.min_reference_num=1
-        self.regularization_a=1e-1
+        self.regularization_a=1e-2
         self.parameter_relative_eb=1e-2
         self.pivot_ratio=2**15
         self.eb_tune_ratio=0.95
         self.fix_coefficient:bool=False
+        self.sampling_gap=1
