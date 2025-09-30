@@ -3,3 +3,5 @@ png/
 qb/
 c_code/build/
 c_code/install/
+device_based_starter_settings.py
+ASTZ_env/

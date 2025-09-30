@@ -1,0 +1,29 @@
+申请interactive A40节点：
+srun --account=bcnl-delta-gpu --partition=gpuA40x4-interactive --nodes=1 --gpus=1 --cpus-per-task=16 --mem=64g --time=01:00:00 --pty bash
+srun --account=bcnl-delta-cpu --partition=cpu-interactive --nodes=1 --cpus-per-task=16 --mem=64g --time=01:00:00 --pty bash
+
+查询存储和计算资源使用情况：
+quota
+accounts
+
+sz1:
+sz -i /anvil/projects/x-cis240192/x-zjian1-in-cis240192/ISABEL/P/Pf01.bin -z /anvil/projects/x-cis240192/x-zjian1-in-cis240192/ISABEL/P/Pf01.bin.sz -f -M REL -R 1e-2 -3 500 500 100 -c ~/SZ/example/sz1.config
+sz -s /anvil/projects/x-cis240192/x-zjian1-in-cis240192/ISABEL/P/Pf01.bin.sz -x /anvil/projects/x-cis240192/x-zjian1-in-cis240192/ISABEL/P/Pf01.bin.sz.bin -f -M REL -R 1e-2 -3 500 500 100 -c ~/SZ/example/sz1.config
+
+sz2:
+sz -i /anvil/projects/x-cis240192/x-zjian1-in-cis240192/ISABEL/P/Pf01.bin -z /anvil/projects/x-cis240192/x-zjian1-in-cis240192/ISABEL/P/Pf01.bin.sz2 -f -M REL -R 1e-2 -3 500 500 100
+sz -s /anvil/projects/x-cis240192/x-zjian1-in-cis240192/ISABEL/P/Pf01.bin.sz2 -x /anvil/projects/x-cis240192/x-zjian1-in-cis240192/ISABEL/P/Pf01.bin.sz2.bin -f -M REL -R 1e-2 -3 500 500 100
+
+sz3:
+sz3 -i /anvil/projects/x-cis240192/x-zjian1-in-cis240192/ISABEL/P/Pf01.bin -o /anvil/projects/x-cis240192/x-zjian1-in-cis240192/ISABEL/P/Pf01.bin.sz3.bin -f -M REL 1e-2 -3 500 500 100
+
+szp:
+szp_compress /anvil/projects/x-cis240192/x-zjian1-in-cis240192/ISABEL/P/Pf01.bin 64 61.1137060546875
+szp_decompress /anvil/projects/x-cis240192/x-zjian1-in-cis240192/ISABEL/P/Pf01.bin.SZp 25000000 64 61.1137060546875
+
+sxz:
+szx -i /anvil/projects/x-cis240192/x-zjian1-in-cis240192/ISABEL/P/Pf01.bin -z /anvil/projects/x-cis240192/x-zjian1-in-cis240192/ISABEL/P/Pf01.bin.szx -f -m 2 -M REL -R 1e-2 -3 500 500 100
+szx -s /anvil/projects/x-cis240192/x-zjian1-in-cis240192/ISABEL/P/Pf01.bin.szx -x /anvil/projects/x-cis240192/x-zjian1-in-cis240192/ISABEL/P/Pf01.bin.szx.bin -f -m 2 -M REL -R 1e-2 -3 500 500 100
+
+zfp:
+zfp -i /anvil/projects/x-cis240192/x-zjian1-in-cis240192/ISABEL/P/Pf01.bin -o /anvil/projects/x-cis240192/x-zjian1-in-cis240192/ISABEL/P/Pf01.bin.zfp.bin -f -3 500 500 100 -r 1
