@@ -102,9 +102,9 @@ def apply_stencil_decompress_3d(args:args_c,stencil_manager:stencil_manager_c):
             param_num=mask_core.sum().item()+args.pos.shape[1]
             mat_X_baseline=torch.cat([torch.ones(param_num-args.pos.shape[1])/(param_num-args.pos.shape[1]),torch.zeros(args.pos.shape[1])],dim=0)
             mat_A,_=generate_matAB_3d(cur_block_ext,None,mask_block,mask_core,tgt_num,param_num,args)
-            max_X_bin=args.parameters[:param_num]
+            mat_X_bin=args.parameters[:param_num]
             args.parameters=args.parameters[param_num:]
-            mat_X=dequantize_parameter_with_baseline(max_X_bin,mat_X_baseline,args)
+            mat_X=dequantize_parameter_with_baseline(mat_X_bin,mat_X_baseline,args)
             mat_H=mat_A[:-param_num]@mat_X
             cur_block[mask_block[:,1:2]]=mat_H
             seq=(0,1,2,3,4)

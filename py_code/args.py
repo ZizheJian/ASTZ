@@ -3,7 +3,7 @@ from torch import Tensor,tensor
 from typing import List
 
 class args_c:
-    def __init__(self):
+    def __init__(self,argv=None):
         self.code_root=os.path.dirname(__file__)
         self.project_root=os.path.dirname(self.code_root)
 
@@ -20,7 +20,7 @@ class args_c:
         parser.add_argument("-1",dest="data_shape",nargs=1,type=int)
         parser.add_argument("-M",dest="method",nargs="+")
         parser.add_argument("-a",dest="analysis",action="store_true")
-        parser_results=parser.parse_args()
+        parser_results=parser.parse_args(argv)
         if parser_results.data_type_f32:
             self.data_type_str="f32"
             self.dtype=torch.float32

@@ -24,7 +24,7 @@ def apply_stencil_compress_3d(args:args_c,stencil_manager:stencil_manager_c):
     tgt_data=torch.zeros([1,1,1,1,1],dtype=torch.float32)
     cur_data[0,0,0,0,0]=tgt_data[0,0,0,0,0]=args.data[0,0,0]
     mask=torch.zeros([1,2,1,1,1],dtype=torch.bool)
-    mask[0,1,0,0,0]=True
+    mask[0,0,0,0,0]=True
     args.qb=torch.zeros(args.data_shape[0]*args.data_shape[1]*args.data_shape[2],dtype=torch.int32)
     args.qb_begin=args.qb_end=0
     pred_gap=(2**np.ceil(np.log2(args.data_shape))).astype(np.int32)
@@ -153,7 +153,7 @@ def apply_stencil_compress_3d(args:args_c,stencil_manager:stencil_manager_c):
     print(f"max_rel_err= {((args.data-args.data_decompressed).abs().max().item()/(args.data_max-args.data_min)):.3f}")
     mse=((args.data-args.data_decompressed)**2).mean().item()
     psnr=10*math.log10((args.data_max-args.data_min)**2/mse)
-    print(f"\033[31mpsnr= {psnr:.6f} \033[0m")
+    print(f"\033[31mpsnr= {psnr:.3f} \033[0m")
     with open(qb_path,"wb") as f:
         (args.qb+32768).numpy().tofile(f)
     freq=torch.bincount(args.qb+32768,minlength=65536)

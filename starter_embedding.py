@@ -23,7 +23,7 @@ file_name_dict={key:file_name_dict[key] for key in sorted(file_name_dict.keys())
 
 for rel_eb in rel_eb_list:
     rel_eb_str=f"{rel_eb:.0e}"
-    for key in file_name_dict:
+    for key in [16]:
         file_name_dict[key].sort()
         file_num=len(file_name_dict[key])
         file_name_dict[key]=[file_name_dict[key][file_num//2]]

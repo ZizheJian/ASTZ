@@ -7,14 +7,14 @@ import copy,torch
 import numpy as np
 from torch import Tensor
 from itertools import product
-from args import args_c
-from stencil_manager import stencil_manager_c
-from stencil_functions.check import num_of_reference_points_mismatch_check_3d,any_pred_tgt_out_of_boundary_check_3d,any_pred_tgt_processed_check_3d
-from stencil_functions.blockify import blockify_3d
-from stencil_functions.generate_cur_block_ext import generate_cur_block_ext_3d
-from stencil_functions.generate_matAB import generate_matAB_3d
-from quantize import quantize_parameter_with_baseline
-from stencil_functions.shrink_data import shrink_data_3d
+from py_code.args import args_c
+from py_code.stencil_manager import stencil_manager_c
+from py_code.stencil_functions.check import num_of_reference_points_mismatch_check_3d,any_pred_tgt_out_of_boundary_check_3d,any_pred_tgt_processed_check_3d
+from py_code.stencil_functions.blockify import blockify_3d
+from py_code.stencil_functions.generate_cur_block_ext import generate_cur_block_ext_3d
+from py_code.stencil_functions.generate_matAB import generate_matAB_3d
+from py_code.quantize import quantize_parameter_with_baseline
+from py_code.stencil_functions.shrink_data import shrink_data_3d
 
 def search_stencil_3d(args:args_c,stencil_manager:stencil_manager_c):
     tgt_data=copy.deepcopy(args.data).unsqueeze(0).unsqueeze(0)
