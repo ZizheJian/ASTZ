@@ -10,6 +10,7 @@ from stencil_functions.blockify import blockify_3d
 from stencil_functions.generate_cur_block_ext import generate_cur_block_ext_3d
 from stencil_functions.generate_matAB import generate_matAB_3d
 from quantize import quantize_tensor,quantize_parameter_with_baseline
+from read_write_dataset import restore_data_range
 
 def apply_stencil_compress_3d(args:args_c,stencil_manager:stencil_manager_c):
     qb_path=os.path.join(args.project_root,"qb",f"{args.data_name}.qb")
@@ -140,23 +141,24 @@ def apply_stencil_compress_3d(args:args_c,stencil_manager:stencil_manager_c):
     ######## Zstd ########
     cctx=zstd.ZstdCompressor()
     args.zstd_bs=cctx.compress(hf_bs)
-    print(f"Huffman CR= {args.data_shape[0]*args.data_shape[1]*args.data_shape[2]*args.unit_size/len(hf_bs):.3f}")
-    print(f"Zstd CR= {len(hf_bs)/len(args.zstd_bs):.3f}")
-    print(f"\033[31mTotal CR= {args.data_shape[0]*args.data_shape[1]*args.data_shape[2]*args.unit_size/len(args.zstd_bs):.3f} \033[0m")
 
-    args.data=args.data_min+(args.data+1)*(args.data_max-args.data_min)/2
-    args.data_decompressed=args.data_min+(cur_data[0,0]+1)*(args.data_max-args.data_min)/2
-    if args.data_type_str=="ui16":
-        args.data_decompressed=args.data_decompressed.round().clamp(0,65535)
-    print(f"qb_min= {args.qb[:args.qb_end].min().item()}, qb_max= {args.qb[:args.qb_end].max().item()}")
-    print(f"max_err= {(args.data-args.data_decompressed).abs().max().item()}")
-    print(f"max_rel_err= {((args.data-args.data_decompressed).abs().max().item()/(args.data_max-args.data_min)):.3f}")
-    mse=((args.data-args.data_decompressed)**2).mean().item()
-    psnr=10*math.log10((args.data_max-args.data_min)**2/mse)
-    print(f"\033[31mpsnr= {psnr:.3f} \033[0m")
-    with open(qb_path,"wb") as f:
-        (args.qb+32768).numpy().tofile(f)
-    freq=torch.bincount(args.qb+32768,minlength=65536)
-    with open(freq_path,"w") as f:
-        for i in range(65536):
-            f.write(str(i)+" "+str(freq[i].item())+"\n")
+    if args.analysis:
+        print(f"Huffman CR= {args.data_shape[0]*args.data_shape[1]*args.data_shape[2]*args.unit_size/len(hf_bs):.3f}")
+        print(f"Zstd CR= {len(hf_bs)/len(args.zstd_bs):.3f}")
+        print(f"\033[31mTotal CR= {args.data_shape[0]*args.data_shape[1]*args.data_shape[2]*args.unit_size/len(args.zstd_bs):.3f} \033[0m")
+        temp_data=restore_data_range(args.data,args)
+        temp_data_decompressed=restore_data_range(cur_data[0,0],args)
+        if args.data_type_str=="ui16":
+            temp_data_decompressed=temp_data_decompressed.round().clamp(0,65535)
+        print(f"qb_min= {args.qb[:args.qb_end].min().item()}, qb_max= {args.qb[:args.qb_end].max().item()}")
+        print(f"max_err= {(temp_data-temp_data_decompressed).abs().max().item()}")
+        print(f"max_rel_err= {((temp_data-temp_data_decompressed).abs().max().item()/(args.data_max-args.data_min)):.3f}")
+        mse=((temp_data-temp_data_decompressed)**2).mean().item()
+        psnr=10*math.log10((args.data_max-args.data_min)**2/mse)
+        print(f"\033[31mpsnr= {psnr:.3f} \033[0m")
+        with open(qb_path,"wb") as f:
+            (args.qb+32768).numpy().tofile(f)
+        freq=torch.bincount(args.qb+32768,minlength=65536)
+        with open(freq_path,"w") as f:
+            for i in range(65536):
+                f.write(str(i)+" "+str(freq[i].item())+"\n")

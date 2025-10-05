@@ -1,7 +1,7 @@
 import re,os
 from py_code.starter_functions.call_generate_stencil_list import call_generate_stencil_list
 from py_code.starter_functions.call_py_compress import call_py_compress
-from py_code.starter_functions.call_qoz_compress import call_qoz_compress
+from py_code.starter_functions.call_qoz_compress import call_qoz2_compress
 
 embedding_dir_path="/work/hdd/bdgi/zjian1/Qwen2-VL-2B-Instruct-embeddings"
 rel_eb_list=[3e-3]

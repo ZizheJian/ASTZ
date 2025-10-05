@@ -10,7 +10,7 @@ from stencil_functions.blockify import blockify_3d
 from stencil_functions.generate_cur_block_ext import generate_cur_block_ext_3d
 from stencil_functions.generate_matAB import generate_matAB_3d
 from quantize import dequantize_parameter_with_baseline,dequantize_tensor
-from read_write_dataset import read_dataset
+from read_write_dataset import read_dataset,restore_data_range
 
 def apply_stencil_decompress_3d(args:args_c,stencil_manager:stencil_manager_c):
     ######## Zstd ########
@@ -131,11 +131,11 @@ def apply_stencil_decompress_3d(args:args_c,stencil_manager:stencil_manager_c):
     if args.analysis:
         read_dataset(args)
         if args.data_type_str=="ui16":
-            temp_data=(args.data_min+(args.data+1)*(args.data_max-args.data_min)/2).round().clamp(0,65535)
-            temp_data_decompressed=(args.data_min+(args.data_decompressed+1)*(args.data_max-args.data_min)/2).round().clamp(0,65535)
+            temp_data=restore_data_range(args.data,args).round().clamp(0,65535)
+            temp_data_decompressed=restore_data_range(args.data_decompressed,args).round().clamp(0,65535)
         else:
-            temp_data=args.data_min+(args.data+1)*(args.data_max-args.data_min)/2
-            temp_data_decompressed=args.data_min+(args.data_decompressed+1)*(args.data_max-args.data_min)/2
+            temp_data=restore_data_range(args.data,args)
+            temp_data_decompressed=restore_data_range(args.data_decompressed,args)
         print(temp_data.min().item(),temp_data.max().item(),temp_data_decompressed.min().item(),temp_data_decompressed.max().item())
         print(f"max_err= {(temp_data-temp_data_decompressed).abs().max().item():.3f}")
         print(f"max_rel_err= {((temp_data-temp_data_decompressed).abs().max().item()/(args.data_max-args.data_min)):.3f}")

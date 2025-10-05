@@ -1,5 +1,5 @@
 申请interactive A40节点：
-srun --account=bcnl-delta-gpu --partition=gpuA40x4-interactive --nodes=1 --gpus=1 --cpus-per-task=16 --mem=64g --time=01:00:00 --pty bash
+srun --account=bdgi-delta-gpu --partition=gpuA40x4-interactive --nodes=1 --gpus=1 --cpus-per-task=16 --mem=64g --time=01:00:00 --pty bash
 srun --account=bcnl-delta-cpu --partition=cpu-interactive --nodes=1 --cpus-per-task=16 --mem=64g --time=01:00:00 --pty bash
 
 查询存储和计算资源使用情况：

@@ -7,20 +7,19 @@ import copy,torch
 import numpy as np
 from torch import Tensor
 from itertools import product
-from py_code.args import args_c
-from py_code.stencil_manager import stencil_manager_c
-from py_code.stencil_functions.check import num_of_reference_points_mismatch_check_3d,any_pred_tgt_out_of_boundary_check_3d,any_pred_tgt_processed_check_3d
-from py_code.stencil_functions.blockify import blockify_3d
-from py_code.stencil_functions.generate_cur_block_ext import generate_cur_block_ext_3d
-from py_code.stencil_functions.generate_matAB import generate_matAB_3d
-from py_code.quantize import quantize_parameter_with_baseline
-from py_code.stencil_functions.shrink_data import shrink_data_3d
+from args import args_c
+from stencil_manager import stencil_manager_c
+from stencil_functions.check import num_of_reference_points_mismatch_check_3d,any_pred_tgt_out_of_boundary_check_3d,any_pred_tgt_processed_check_3d
+from stencil_functions.blockify import blockify_3d
+from stencil_functions.generate_cur_block_ext import generate_cur_block_ext_3d
+from stencil_functions.generate_matAB import generate_matAB_3d
+from quantize import quantize_parameter_with_baseline
+from stencil_functions.shrink_data import shrink_data_3d
 
 def search_stencil_3d(args:args_c,stencil_manager:stencil_manager_c):
     tgt_data=copy.deepcopy(args.data).unsqueeze(0).unsqueeze(0)
     mask=torch.zeros((1,2)+args.data.shape,dtype=torch.bool)#mask[0,0]表示已压缩数据，mask[0,1]表示正在压缩的数据。mask_block[0,2]会在blockify中被添加，表示未出界数据
     mask[:,0]=True
-    compressed_data_num=0
     with open(args.stencil_path,"w") as f:
         pass
     for i in range((np.sum(np.ceil(np.log2(args.data_shape)))).astype(int)):
@@ -79,36 +78,14 @@ def search_stencil_3d(args:args_c,stencil_manager:stencil_manager_c):
                         lstsq_result=torch.linalg.lstsq(mat_A_filtered,mat_B_filtered,driver="gels")
                         mat_X=lstsq_result.solution
                         _,mat_X=quantize_parameter_with_baseline(mat_X,mat_X_baseline,args)
-                        ########仅计算valid_equations的误差########
-                        # err=mat_A[:-param_num][valid_equations]@mat_X-mat_B[:-param_num][valid_equations]
-                        # block_loss_num=valid_equations.sum().item()
-                        # block_loss=(err**2).sum().item()
-                        ########计算valid_equations和正则化的误差########
                         err=mat_A_filtered@mat_X-mat_B_filtered
                         block_loss_num=valid_equations.sum().item()+param_num
                         block_loss=(err**2).sum().item()
-                        ########计算所有equations的误差########
-                        # err=mat_A[:-param_num]@mat_X-mat_B[:-param_num]
-                        # block_loss_num=tgt_num
-                        # block_loss=(err**2).sum().item()
-                        ########计算所有equations和正则化的误差########
-                        # err=mat_A@mat_X-mat_B
-                        # block_loss_num=tgt_num+param_num
-                        # block_loss=(err**2).sum().item()
                     else:
                         mat_X=mat_X_baseline.clone()
-                        # err=0
-                        # block_loss_num=0
-                        # block_loss=0
                         err=mat_A[-param_num:]@mat_X-mat_B[-param_num:]
                         block_loss_num=param_num
                         block_loss=(err**2).sum().item()
-                        # err=mat_A[:-param_num]@mat_X-mat_B[:-param_num]
-                        # block_loss_num=tgt_num
-                        # block_loss=(err**2).sum().item()
-                        # err=mat_A@mat_X-mat_B
-                        # block_loss_num=tgt_num+param_num
-                        # block_loss=(err**2).sum().item()
                 total_loss_num+=block_loss_num
                 total_loss+=block_loss
             total_loss=total_loss/total_loss_num
@@ -123,11 +100,8 @@ def search_stencil_3d(args:args_c,stencil_manager:stencil_manager_c):
         ########保存最佳topology########
         with open(args.stencil_path,"a") as f:
             f.write(f"{tgt_data.shape[2]} {tgt_data.shape[3]} {tgt_data.shape[4]} {best_stencil_id}\n")
-        compressed_data_num+=best_mask[:,1].sum().item()
         tgt_data[best_mask[:,1:2]]=0
         mask[0,0]=best_mask[0,0]
         mask[0,1]=False
         tgt_data,mask=shrink_data_3d(tgt_data,mask,args)
         print(args.data_shape)
-    compressed_data_num+=1
-    print(f"compressed_data_num={compressed_data_num}")

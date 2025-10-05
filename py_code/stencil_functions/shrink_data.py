@@ -1,5 +1,5 @@
 from torch import Tensor
-from py_code.args import args_c
+from args import args_c
 from typing import Tuple
 
 def shrink_data_3d(tgt_data:Tensor,mask:Tensor,args:args_c)->Tuple[Tensor,Tensor]:
