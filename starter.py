@@ -14,9 +14,12 @@ from device_based_starter_settings import data_path,data_shape,data_type,rel_eb_
 whether_large_scale_testing=0
 
 ########Settings about single test########
-whether_generate_stencil_list_using_FHDE=1
-whether_compress_using_FHDE=1
+whether_generate_stencil_list_using_FHDE=0
+whether_compress_using_FHDE=0
 whether_decompress_using_FHDE=0
+
+whether_compress_using_FHDE_gpu=0
+whether_decompress_using_FHDE_gpu=1
 
 whether_generate_stencil_list_using_HDE=0
 whether_compress_using_HDE=0
@@ -49,6 +52,10 @@ if not whether_large_scale_testing:
         call_py_compress(project_directory_path,data_path,data_type,data_shape,rel_eb_str,"FHDE",FHDE_threshold)
     if whether_decompress_using_FHDE:
         call_py_decompress(project_directory_path,data_path,data_type,data_shape,rel_eb_str,"FHDE",FHDE_threshold,whether_calculate_ssim)
+    if whether_compress_using_FHDE_gpu:
+        call_py_compress(project_directory_path,data_path,data_type,data_shape,rel_eb_str,"FHDE_gpu",FHDE_threshold)
+    if whether_decompress_using_FHDE_gpu:
+        call_py_decompress(project_directory_path,data_path,data_type,data_shape,rel_eb_str,"FHDE_gpu",FHDE_threshold,whether_calculate_ssim)
     if whether_generate_stencil_list_using_HDE:
         call_generate_stencil_list(project_directory_path,data_path,data_type,data_shape,rel_eb_str,"HDE")
     if whether_compress_using_HDE:

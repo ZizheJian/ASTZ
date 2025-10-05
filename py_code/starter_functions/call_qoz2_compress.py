@@ -37,7 +37,9 @@ def call_qoz2_compress(qoz2_path:str,calculateSSIM_path:str,data_path:str,data_t
     ssim=0
     if whether_calculate_ssim:
         output_lines=[]
-        command=f"{calculateSSIM_path} -f '{data_path}' '{data_path}_{rel_eb_str}.hpez.bin' {data_shape[2]} {data_shape[1]} {data_shape[0]}"
+        command=f"{calculateSSIM_path} -f '{data_path}' '{data_path}_{rel_eb_str}.qoz2.bin' "
+        for dim in reversed(data_shape):
+            command+=f"{dim} "
         process=subprocess.Popen(command,shell=True,encoding="utf-8",stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
         for line in iter(process.stdout.readline,""):
             print(line,end="",flush=True)

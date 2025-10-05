@@ -12,8 +12,8 @@ awq_model=AutoModelForCausalLM.from_pretrained(awq_model_name,cache_dir=cache_di
 dataset=load_dataset("wikitext","wikitext-2-raw-v1",cache_dir=cache_dir,split="validation")
 
 device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model=model.to(device) # pyright: ignore[reportArgumentType]
-awq_model=awq_model.to(device) # pyright: ignore[reportArgumentType]
+model=model.to(device)
+awq_model=awq_model.to(device)
 model.eval()
 awq_model.eval()
 

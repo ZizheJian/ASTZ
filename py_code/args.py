@@ -49,13 +49,18 @@ class args_c:
         elif self.eb_type=="REL":
             self.rel_eb=float(parser_results.err[1])
         self.method=parser_results.method[0]
-        if self.method in ["FIX","HDE","FHDE"]:
-            if self.method=="FHDE":
+        if self.method in ["FIX","HDE","FHDE","FHDE_gpu"]:
+            if self.method=="FHDE" or self.method=="FHDE_gpu":
                 self.FHDE_threshold=float(parser_results.method[1])
             else:
                 self.FHDE_threshold=0
         else:
             raise ValueError(f"Unsupported method: {self.method}")
+        if "gpu" in self.method:
+            if torch.cuda.is_available():
+                self.device=torch.device("cuda")
+            else:
+                raise ValueError("No available GPU!")
         self.analysis=parser_results.analysis
 
         self.data_min:float=0
@@ -89,5 +94,5 @@ class args_c:
         self.min_reference_num=1
         self.regularization_a=1e-2
         self.parameter_relative_eb=1e-2
-        self.sampling_gap=1
+        self.sampling_gap=2
         self.interpolation_method="linear" # "linear" or "cubic"
