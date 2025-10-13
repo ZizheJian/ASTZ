@@ -9,14 +9,14 @@ class stencil_pattern_c():
 
 class stencil_manager_c():
     def __init__(self,args:args_c)->None:
-        if args.interpolation_method=="linear":
-            self.r1_mask=torch.tensor([[[0,0,0],[0,1,0],[0,0,0]],[[0,1,0],[1,0,1],[0,1,0]],[[0,0,0],[0,1,0],[0,0,0]]],dtype=torch.bool)
-            self.r2_mask=torch.tensor([[[0,1,0],[1,1,1],[0,1,0]],[[1,1,1],[1,0,1],[1,1,1]],[[0,1,0],[1,1,1],[0,1,0]]],dtype=torch.bool)
-            self.r3_mask=torch.ones((3,3,3),dtype=torch.bool)
-        elif args.interpolation_method=="cubic":
-            raise NotImplementedError(f"Haven't implemented radius masks for cubic interpolation yet.")
-        self.stencil_dict:dict[int,stencil_pattern_c]={}
         if args.dim_num==3:
+            if args.interpolation_method=="linear":
+                self.r1_mask=torch.tensor([[[0,0,0],[0,1,0],[0,0,0]],[[0,1,0],[1,0,1],[0,1,0]],[[0,0,0],[0,1,0],[0,0,0]]],dtype=torch.bool)
+                self.r2_mask=torch.tensor([[[0,1,0],[1,1,1],[0,1,0]],[[1,1,1],[1,0,1],[1,1,1]],[[0,1,0],[1,1,1],[0,1,0]]],dtype=torch.bool)
+                self.r3_mask=torch.ones((3,3,3),dtype=torch.bool)
+            elif args.interpolation_method=="cubic":
+                raise NotImplementedError(f"Haven't implemented radius masks for cubic interpolation yet.")
+            self.stencil_dict:dict[int,stencil_pattern_c]={}
             self.stencil_dict[411]=stencil_pattern_c(torch.tensor([[[0,1],[0,1]],[[0,1],[0,1]]],dtype=torch.bool))
             self.stencil_dict[412]=stencil_pattern_c(torch.tensor([[[0,0],[1,1]],[[0,0],[1,1]]],dtype=torch.bool))
             self.stencil_dict[413]=stencil_pattern_c(torch.tensor([[[0,0],[0,0]],[[1,1],[1,1]]],dtype=torch.bool))
@@ -70,15 +70,33 @@ class stencil_manager_c():
                 else:
                     raise NotImplementedError(f"Haven't implemented mask core generation for cubic interpolation yet.")
                     #需要使用torch.flip翻转后半部分数据
-                
         elif args.dim_num==2:
+            if args.interpolation_method=="linear":
+                self.r1_mask=torch.tensor([[0,1,0],[1,0,1],[0,1,0]],dtype=torch.bool)
+                self.r2_mask=torch.ones((3,3),dtype=torch.bool)
+            elif args.interpolation_method=="cubic":
+                raise NotImplementedError(f"Haven't implemented radius masks for cubic interpolation yet.")
+            self.stencil_dict:dict[int,stencil_pattern_c]={}
             self.stencil_dict[211]=stencil_pattern_c(torch.tensor([[0,1],[0,1]],dtype=torch.bool))
             self.stencil_dict[213]=stencil_pattern_c(torch.tensor([[0,0],[1,1]],dtype=torch.bool))
             self.stencil_dict[221]=stencil_pattern_c(torch.tensor([[0,1],[1,0]],dtype=torch.bool))
             self.stencil_dict[111]=stencil_pattern_c(torch.tensor([[0,1],[0,0]],dtype=torch.bool))
             self.stencil_dict[112]=stencil_pattern_c(torch.tensor([[0,0],[1,0]],dtype=torch.bool))
             self.stencil_dict[121]=stencil_pattern_c(torch.tensor([[0,0],[0,1]],dtype=torch.bool))
-            raise NotImplementedError(f"Haven't implemented mask core generation for 2D yet.")
+            for stencil_id,stencil in self.stencil_dict.items():
+                if args.interpolation_method=="linear":
+                    stencil.mask_core=torch.zeros(1,1,3,3,dtype=torch.bool)
+                    stencil.mask_core[0,0,1:,1:]=stencil.ref_pos
+                    stencil.mask_core[0,0,0,:]=stencil.mask_core[0,0,2,:]
+                    stencil.mask_core[0,0,:,0]=stencil.mask_core[0,0,:,2]
+                    if (stencil.mask_core&self.r1_mask).sum().item()>=args.min_reference_num:
+                        stencil.mask_core=stencil.mask_core&self.r1_mask
+                        continue
+                    else:
+                        continue
+                else:
+                    raise NotImplementedError(f"Haven't implemented mask core generation for cubic interpolation yet.")
+                    #需要使用torch.flip翻转后半部分数据
         elif args.dim_num==1:
             self.stencil_dict[111]=stencil_pattern_c(torch.tensor([0,1],dtype=torch.bool))
             raise NotImplementedError(f"Haven't implemented mask core generation for 1D yet.")

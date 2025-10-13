@@ -1,4 +1,4 @@
-import os,torch,struct,math
+import torch,struct,math
 import numpy as np
 from dahuffman import HuffmanCodec
 from itertools import product
@@ -66,8 +66,6 @@ def apply_stencil_compress_gpu_3d(args:args_c,stencil_manager:stencil_manager_c)
             cur_block=cur_block_pad[:,:,padding:-padding,padding:-padding,padding:-padding]
             mask_block=mask_block_pad[:,:,padding:-padding,padding:-padding,padding:-padding]
             blockify_records.append((block_id,block_pos,cur_block,tgt_block,mask_block))
-            if mask_block[0,1].sum().item()==0:
-                raise NotImplementedError("Compression for blocks with no prediction target is not implemented.")
             mat_X_baseline=torch.cat((torch.ones(param_num-args.pos.shape[1],device=args.device)/(param_num-args.pos.shape[1]),
                                       torch.zeros(args.pos.shape[1],device=args.device)),dim=0)
             mat_A[block_id],mat_B[block_id]=generate_matAB_gpu_3d(cur_block_ext,tgt_block,mask_block,mask_core,max_tgt_num,param_num,args)

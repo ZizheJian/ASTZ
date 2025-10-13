@@ -54,7 +54,7 @@ def apply_stencil_compress_3d(args:args_c,stencil_manager:stencil_manager_c):
             cur_block=cur_block_pad[:,:,padding:-padding,padding:-padding,padding:-padding]
             mask_block=mask_block_pad[:,:,padding:-padding,padding:-padding,padding:-padding]
             if mask_block[0,1].sum().item()==0:
-                raise NotImplementedError("Compression for blocks with no prediction target is not implemented.")
+                continue
             tgt_num=mask_block[:,1].sum().item()
             param_num=mask_core.sum().item()+args.pos.shape[1]
             mat_X_baseline=torch.cat([torch.ones(param_num-args.pos.shape[1])/(param_num-args.pos.shape[1]),torch.zeros(args.pos.shape[1])],dim=0)
@@ -80,7 +80,7 @@ def apply_stencil_compress_3d(args:args_c,stencil_manager:stencil_manager_c):
                     mat_X=mat_X_baseline.clone()
             mat_X_bin,mat_X=quantize_parameter_with_baseline(mat_X,mat_X_baseline,args)
             args.parameters.append(mat_X_bin)
-            mat_H=mat_A[:-param_num]@mat_X
+            mat_H=(mat_A[:-param_num]@mat_X).clamp(args.data_min,args.data_max)
             h_block=cur_block.clone()
             h_block[mask_block[:,1:2]]=mat_H
             seq=(0,1,2,3,4)

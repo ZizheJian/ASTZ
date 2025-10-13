@@ -1,4 +1,4 @@
-import os,torch,struct,math
+import torch,struct,math
 import numpy as np
 from dahuffman import HuffmanCodec
 from itertools import product
@@ -100,8 +100,6 @@ def apply_stencil_decompress_gpu_3d(args:args_c,stencil_manager:stencil_manager_
             cur_block_ext=generate_cur_block_ext_gpu_3d(cur_block_pad,padding,args)
             cur_block=cur_block_pad[:,:,padding:-padding,padding:-padding,padding:-padding]
             mask_block=mask_block_pad[:,:,padding:-padding,padding:-padding,padding:-padding]
-            if mask_block[0,1].sum().item()==0:
-                continue
             tgt_num=mask_block[:,1].sum().item()
             param_num=mask_core.sum().item()+args.pos.shape[1]
             mat_X_baseline=torch.cat([torch.ones(param_num-args.pos.shape[1],device=args.device)/(param_num-args.pos.shape[1]),

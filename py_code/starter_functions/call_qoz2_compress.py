@@ -24,7 +24,10 @@ def call_qoz2_compress(qoz2_path:str,calculateSSIM_path:str,data_path:str,data_t
             os.remove(f"{temp_data_path}_{rel_eb_str}.qoz2.bin")
         else:
             print("Warning: Cannot find the decompressed file after changing the data type!")
-        return ret
+        cr,psnr,ssim=ret
+        if data_type=="ui16":
+            cr=cr/2
+        return cr,psnr,ssim
     command=f"{qoz2_path} -i '{data_path}' -z '{data_path}_{rel_eb_str}.qoz2' -o '{data_path}_{rel_eb_str}.qoz2.bin' "
     command+=f"-f -M REL {rel_eb_str} -q 4 "
     command+=f"-{len(data_shape)} "

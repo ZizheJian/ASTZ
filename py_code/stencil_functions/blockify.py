@@ -16,3 +16,16 @@ def blockify_3d(cur_data:Tensor,tgt_data:Tensor,mask:Tensor,args:args_c,padding:
                     tgt_block=None
                 mask_block=temp_mask[:,:,i0:i0+args.model_block_step[0]+2*padding,i1:i1+args.model_block_step[1]+2*padding,i2:i2+args.model_block_step[2]+2*padding]
                 yield (i0,i1,i2),cur_block,tgt_block,mask_block
+
+def blockify_2d(cur_data:Tensor,tgt_data:Tensor,mask:Tensor,args:args_c,padding:int=0)->Generator[Tuple[Tuple[int],Tensor,Tensor,Tensor],None,None]:
+    temp_cur_data=F.pad(cur_data,(padding,)*4,mode="replicate")
+    temp_mask=F.pad(F.pad(mask,(0,)*4+(0,1),value=True),(padding,)*4,value=False)
+    for i0 in range(0,cur_data.shape[2],args.model_block_step[0]):
+        for i1 in range(0,cur_data.shape[3],args.model_block_step[1]):
+            cur_block=temp_cur_data[:,:,i0:i0+args.model_block_step[0]+2*padding,i1:i1+args.model_block_step[1]+2*padding]
+            if tgt_data is not None:
+                tgt_block=tgt_data[:,:,i0:i0+args.model_block_step[0],i1:i1+args.model_block_step[1]]
+            else:
+                tgt_block=None
+            mask_block=temp_mask[:,:,i0:i0+args.model_block_step[0]+2*padding,i1:i1+args.model_block_step[1]+2*padding]
+            yield (i0,i1),cur_block,tgt_block,mask_block

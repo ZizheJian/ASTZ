@@ -77,22 +77,27 @@ class args_c:
         self.cur_shape_list:List[List[int]]=None
         self.stencil_id_list:List[int]=None
         self.parameter_eb:float=0
-        
-        self.pivot_ratio=2**15
+
+        self.pivot_ratio=2**17
         self.eb_tune_ratio=0.95
-        self.model_block_step=[32,32,32]
-        self.pos=torch.zeros([1,4]+self.model_block_step).float()
-        self.pos[0,0]=torch.arange(self.model_block_step[0]).view(-1,1,1).expand(self.model_block_step)*2/(self.model_block_step[0]-1)-1
-        self.pos[0,1]=torch.arange(self.model_block_step[1]).view(1,-1,1).expand(self.model_block_step)*2/(self.model_block_step[1]-1)-1
-        self.pos[0,2]=torch.arange(self.model_block_step[2]).view(1,1,-1).expand(self.model_block_step)*2/(self.model_block_step[2]-1)-1
-        self.pos[0,3]=1
-        # self.padded_pos=torch.zeros([4]+[i+2 for i in self.model_block_step]).unsqueeze(0).float()#需要pad是因为cur_block_ext有pad，方便一些，没有pad也能写
-        # self.padded_pos[0,0]=(torch.arange(self.model_block_step[0]+2)-1).view(-1,1,1).expand([x+2 for x in self.model_block_step])*2/(self.model_block_step[0]-1)-1
-        # self.padded_pos[0,1]=(torch.arange(self.model_block_step[1]+2)-1).view(1,-1,1).expand([x+2 for x in self.model_block_step])*2/(self.model_block_step[1]-1)-1
-        # self.padded_pos[0,2]=(torch.arange(self.model_block_step[2]+2)-1).view(1,1,-1).expand([x+2 for x in self.model_block_step])*2/(self.model_block_step[2]-1)-1
-        # self.padded_pos[0,3]=1
+        if self.dim_num==3:
+            self.model_block_step=[64,64,64]
+            self.pos=torch.zeros([1,4]+self.model_block_step).float()
+            self.pos[0,0]=torch.arange(self.model_block_step[0]).view(-1,1,1).expand(self.model_block_step)*2/(self.model_block_step[0]-1)-1
+            self.pos[0,1]=torch.arange(self.model_block_step[1]).view(1,-1,1).expand(self.model_block_step)*2/(self.model_block_step[1]-1)-1
+            self.pos[0,2]=torch.arange(self.model_block_step[2]).view(1,1,-1).expand(self.model_block_step)*2/(self.model_block_step[2]-1)-1
+            self.pos[0,3]=1
+        elif self.dim_num==2:
+            self.model_block_step=[1024,1024]
+            self.pos=torch.zeros([1,3]+self.model_block_step).float()
+            self.pos[0,0]=torch.arange(self.model_block_step[0]).view(-1,1).expand(self.model_block_step)*2/(self.model_block_step[0]-1)-1
+            self.pos[0,1]=torch.arange(self.model_block_step[1]).view(1,-1).expand(self.model_block_step)*2/(self.model_block_step[1]-1)-1
+            self.pos[0,2]=1
+        elif self.dim_num==1:
+            raise NotImplementedError(f"Haven't implemented 1D model yet.")
         self.min_reference_num=1
-        self.regularization_a=1e-2
-        self.parameter_relative_eb=1e-2
-        self.sampling_gap=2
+        # for SDRBENCH-EXAFEL min_reference_num=15
+        self.regularization_a=1e-4
+        self.parameter_relative_eb=1e-1
+        self.sampling_gap=1
         self.interpolation_method="linear" # "linear" or "cubic"

@@ -15,11 +15,11 @@ whether_large_scale_testing=0
 
 ########Settings about single test########
 whether_generate_stencil_list_using_FHDE=0
-whether_compress_using_FHDE=0
-whether_decompress_using_FHDE=0
+whether_compress_using_FHDE=1
+whether_decompress_using_FHDE=1
 
 whether_compress_using_FHDE_gpu=0
-whether_decompress_using_FHDE_gpu=1
+whether_decompress_using_FHDE_gpu=0
 
 whether_generate_stencil_list_using_HDE=0
 whether_compress_using_HDE=0
@@ -36,7 +36,7 @@ whether_compress_using_zfp=0
 whether_compress_using_cusz=0
 
 ########Some extra settings########
-whether_calculate_ssim=1
+whether_calculate_ssim=0
 
 FHDE_threshold=9
 
@@ -62,6 +62,12 @@ if not whether_large_scale_testing:
         call_py_compress(project_directory_path,data_path,data_type,data_shape,rel_eb_str,"HDE")
     if whether_decompress_using_HDE:
         call_py_decompress(project_directory_path,data_path,data_type,data_shape,rel_eb_str,"HDE",whether_calculate_ssim)
+    if whether_generate_stencil_list_using_fixed_coefficient:
+        call_generate_stencil_list(project_directory_path,data_path,data_type,data_shape,rel_eb_str,"FIX")
+    if whether_compress_using_fixed_coefficient:
+        call_py_compress(project_directory_path,data_path,data_type,data_shape,rel_eb_str,"FIX")
+    if whether_decompress_using_fixed_coefficient:
+        call_py_decompress(project_directory_path,data_path,data_type,data_shape,rel_eb_str,"FIX",whether_calculate_ssim)
     if whether_enumerate_threshold:
         call_search_threshold(project_directory_path,data_path,data_type,data_shape,rel_eb_list)
     # if SH_TH:
@@ -76,6 +82,8 @@ if not whether_large_scale_testing:
         cr,psnr,ssim=call_qoz2_compress(qoz_path,calculateSSIM_path,data_path,data_type,data_shape,rel_eb_str,whether_calculate_ssim)
     if whether_compress_using_sz3:
         cr,psnr,ssim=call_sz3_compress(sz3_path,calculateSSIM_path,data_path,data_type,data_shape,rel_eb_str,whether_calculate_ssim)
+    if whether_compress_using_zfp:
+        cr,psnr,ssim=call_zfp_compress(zfp_path,calculateSSIM_path,data_path,data_type,data_shape,rel_eb_str,whether_calculate_ssim)
 else:
     for rel_eb in rel_eb_list:
         if not os.path.exists(f"large_scale_record/{data_name}.txt"):

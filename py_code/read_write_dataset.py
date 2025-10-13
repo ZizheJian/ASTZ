@@ -21,10 +21,9 @@ def read_dataset(args:args_c):
     print(f"data_min:{args.data_min}, data_max:{args.data_max}")
     args.data=min_max_data(args.data,args)
     if args.eb_type=="REL":
-        if args.eb_type=="REL":
-            args.abs_eb=2*args.rel_eb
-        else:
-            args.abs_eb=2*args.abs_eb/(args.data_max-args.data_min)
+        args.abs_eb=2*args.rel_eb
+    else:
+        args.abs_eb=2*args.abs_eb/(args.data_max-args.data_min)
     args.parameter_eb=args.abs_eb*args.parameter_relative_eb
 
 def write_compressed_bitstream(args:args_c):
