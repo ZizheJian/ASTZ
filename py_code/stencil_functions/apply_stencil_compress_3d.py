@@ -80,7 +80,7 @@ def apply_stencil_compress_3d(args:args_c,stencil_manager:stencil_manager_c):
                     mat_X=mat_X_baseline.clone()
             mat_X_bin,mat_X=quantize_parameter_with_baseline(mat_X,mat_X_baseline,args)
             args.parameters.append(mat_X_bin)
-            mat_H=mat_A[:-param_num]@mat_X
+            mat_H=(mat_A[:-param_num]@mat_X).clamp(-1,1)
             h_block=cur_block.clone()
             h_block[mask_block[:,1:2]]=mat_H
             seq=(0,1,2,3,4)
@@ -91,12 +91,7 @@ def apply_stencil_compress_3d(args:args_c,stencil_manager:stencil_manager_c):
             elif stencil_id in [413,215,216,253]:
                 seq=(0,1,3,4,2)
             quantize_block=quantize_tensor(tgt_block-h_block,mask_block[:,1:2],current_eb)
-            cur_block[mask_block[:,1:2]]=h_block[mask_block[:,1:2]]+quantize_block[mask_block[:,1:2]]*2*current_eb
-            irr_mask=(quantize_block.abs()>32767)
-            args.pivot[args.pivot_num:args.pivot_num+irr_mask.sum().item()]=tgt_block[irr_mask]
-            args.pivot_num+=irr_mask.sum().item()
-            cur_block[irr_mask]=tgt_block[irr_mask]
-            quantize_block[irr_mask]=-32768
+            cur_block[mask_block[:,1:2]]=(h_block[mask_block[:,1:2]]+quantize_block[mask_block[:,1:2]]*2*current_eb).clamp(-1,1)
             cur_data[:,:,block_id[0]:block_id[0]+args.model_block_step[0],
                          block_id[1]:block_id[1]+args.model_block_step[1],
                          block_id[2]:block_id[2]+args.model_block_step[2]]=cur_block
@@ -149,7 +144,7 @@ def apply_stencil_compress_3d(args:args_c,stencil_manager:stencil_manager_c):
         temp_data=restore_data_range(args.data,args)
         temp_data_decompressed=restore_data_range(cur_data[0,0],args)
         if args.data_type_str=="ui16":
-            temp_data_decompressed=temp_data_decompressed.round().clamp(0,65535)
+            temp_data_decompressed=temp_data_decompressed.round()
         print(f"qb_min= {args.qb[:args.qb_end].min().item()}, qb_max= {args.qb[:args.qb_end].max().item()}")
         print(f"max_err= {(temp_data-temp_data_decompressed).abs().max().item()}")
         print(f"max_rel_err= {((temp_data-temp_data_decompressed).abs().max().item()/(args.data_max-args.data_min)):.3f}")

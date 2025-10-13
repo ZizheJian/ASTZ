@@ -45,9 +45,3 @@ def quantize_parameter_with_baseline(parameter:Tensor,baseline:Tensor,args:args_
     parameter[mask_positive]=torch.ceil((delta[mask_positive]-args.parameter_eb)/(2*args.parameter_eb))
     parameter[mask_negative]=torch.floor((delta[mask_negative]+args.parameter_eb)/(2*args.parameter_eb))
     return parameter.int(),baseline+args.parameter_eb*parameter*2
-
-def dequantize_parameter_with_baseline(qb:Tensor,baseline:Tensor,args:args_c)->Tensor:
-    return baseline+args.parameter_eb*qb*2
-
-def dequantize_tensor(qb:Tensor,eb:float)->Tensor:
-    return eb*qb*2

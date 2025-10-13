@@ -9,7 +9,6 @@ from stencil_functions.expand_data import expand_data_3d
 from stencil_functions.blockify import blockify_3d
 from stencil_functions.generate_cur_block_ext import generate_cur_block_ext_3d
 from stencil_functions.generate_matAB import generate_matAB_3d
-from quantize import dequantize_parameter_with_baseline,dequantize_tensor
 from read_write_dataset import read_dataset,restore_data_range
 
 def apply_stencil_decompress_3d(args:args_c,stencil_manager:stencil_manager_c):
@@ -96,16 +95,16 @@ def apply_stencil_decompress_3d(args:args_c,stencil_manager:stencil_manager_c):
             cur_block_ext=generate_cur_block_ext_3d(cur_block_pad,padding,args)
             cur_block=cur_block_pad[:,:,padding:-padding,padding:-padding,padding:-padding]
             mask_block=mask_block_pad[:,:,padding:-padding,padding:-padding,padding:-padding]
-            # if mask_block[0,1].sum().item()==0:
-            #     continue
+            if mask_block[0,1].sum().item()==0:
+                continue
             tgt_num=mask_block[:,1].sum().item()
             param_num=mask_core.sum().item()+args.pos.shape[1]
             mat_X_baseline=torch.cat([torch.ones(param_num-args.pos.shape[1])/(param_num-args.pos.shape[1]),torch.zeros(args.pos.shape[1])],dim=0)
             mat_A,_=generate_matAB_3d(cur_block_ext,None,mask_block,mask_core,tgt_num,param_num,args)
             mat_X_bin=args.parameters[:param_num]
             args.parameters=args.parameters[param_num:]
-            mat_X=dequantize_parameter_with_baseline(mat_X_bin,mat_X_baseline,args)
-            mat_H=mat_A[:-param_num]@mat_X
+            mat_X=mat_X_baseline+args.parameter_eb*mat_X_bin*2
+            mat_H=(mat_A[:-param_num]@mat_X).clamp(-1,1)
             cur_block[mask_block[:,1:2]]=mat_H
             seq=(0,1,2,3,4)
             if stencil_id in [411,211,212,251]:
@@ -118,9 +117,7 @@ def apply_stencil_decompress_3d(args:args_c,stencil_manager:stencil_manager_c):
             args.qb_begin=args.qb_end
             args.qb_end+=tgt_num
             quantize_block.permute(seq)[mask_block[:,1:2].permute(seq)]=args.qb[args.qb_begin:args.qb_end]
-            irr_mask=(quantize_block==-32768)
-            cur_block+=dequantize_tensor(quantize_block,current_eb)
-            cur_block[irr_mask]=args.pivot[args.pivot_num:args.pivot_num+irr_mask.sum().item()]
+            cur_block=(cur_block+quantize_block*2*current_eb).clamp(-1,1)
             cur_data[:,:,block_id[0]:block_id[0]+args.model_block_step[0],
                          block_id[1]:block_id[1]+args.model_block_step[1],
                          block_id[2]:block_id[2]+args.model_block_step[2]]=cur_block
@@ -131,8 +128,8 @@ def apply_stencil_decompress_3d(args:args_c,stencil_manager:stencil_manager_c):
     if args.analysis:
         read_dataset(args)
         if args.data_type_str=="ui16":
-            temp_data=restore_data_range(args.data,args).round().clamp(0,65535)
-            temp_data_decompressed=restore_data_range(args.data_decompressed,args).round().clamp(0,65535)
+            temp_data=restore_data_range(args.data,args).round()
+            temp_data_decompressed=restore_data_range(args.data_decompressed,args).round()
         else:
             temp_data=restore_data_range(args.data,args)
             temp_data_decompressed=restore_data_range(args.data_decompressed,args)

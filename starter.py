@@ -2,7 +2,6 @@ import os
 from py_code.starter_functions.call_generate_stencil_list import call_generate_stencil_list
 from py_code.starter_functions.call_py_compress import call_py_compress,call_py_decompress
 from py_code.starter_functions.search_threshold import search_threshold
-from py_code.starter_functions.call_c_compress import call_c_compress
 from py_code.starter_functions.call_sz3_compress import call_sz3_compress
 from py_code.starter_functions.call_qoz2_compress import call_qoz2_compress
 from py_code.starter_functions.call_zfp_compress import call_zfp_compress
@@ -14,9 +13,9 @@ from device_based_starter_settings import data_path,data_shape,data_type,rel_eb_
 whether_large_scale_testing=0
 
 ########Settings about single test########
-whether_generate_stencil_list_using_FHDE=0
+whether_generate_stencil_list_using_FHDE=1
 whether_compress_using_FHDE=1
-whether_decompress_using_FHDE=1
+whether_decompress_using_FHDE=0
 
 whether_compress_using_FHDE_gpu=0
 whether_decompress_using_FHDE_gpu=0

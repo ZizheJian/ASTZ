@@ -9,7 +9,6 @@ from stencil_functions.expand_data import expand_data_gpu_3d
 from stencil_functions.blockify import blockify_3d
 from stencil_functions.generate_cur_block_ext import generate_cur_block_ext_gpu_3d
 from stencil_functions.generate_matAB import generate_matAB_gpu_3d
-from quantize import dequantize_parameter_with_baseline,dequantize_tensor
 from read_write_dataset import read_dataset,restore_data_range
 
 def apply_stencil_decompress_gpu_3d(args:args_c,stencil_manager:stencil_manager_c):
