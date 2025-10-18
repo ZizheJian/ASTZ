@@ -6,9 +6,11 @@ from stencil_manager import stencil_manager_c
 from stencil_functions.apply_stencil_decompress_1d import apply_stencil_decompress_1d
 from stencil_functions.apply_stencil_decompress_2d import apply_stencil_decompress_2d
 from stencil_functions.apply_stencil_decompress_3d import apply_stencil_decompress_3d
+from stencil_functions.apply_stencil_decompress_4d import apply_stencil_decompress_4d
 from stencil_functions.apply_stencil_decompress_gpu_1d import apply_stencil_decompress_gpu_1d
 from stencil_functions.apply_stencil_decompress_gpu_2d import apply_stencil_decompress_gpu_2d
 from stencil_functions.apply_stencil_decompress_gpu_3d import apply_stencil_decompress_gpu_3d
+from stencil_functions.apply_stencil_decompress_gpu_4d import apply_stencil_decompress_gpu_4d
 import zstandard as zstd
 from bitarray import bitarray
 
@@ -22,7 +24,9 @@ stencil_manager=stencil_manager_c(args)
 read_compressed_bitstream(args)
 
 if "gpu" in args.method:
-    if args.dim_num==3:
+    if args.dim_num==4:
+        apply_stencil_decompress_gpu_4d(args,stencil_manager)
+    elif args.dim_num==3:
         apply_stencil_decompress_gpu_3d(args,stencil_manager)
     elif args.dim_num==2:
         apply_stencil_decompress_gpu_2d(args,stencil_manager)
@@ -30,7 +34,9 @@ if "gpu" in args.method:
         apply_stencil_decompress_gpu_1d(args,stencil_manager)
     args.data_decompressed=args.data_decompressed.cpu()
 else:
-    if args.dim_num==3:
+    if args.dim_num==4:
+        apply_stencil_decompress_4d(args,stencil_manager)
+    elif args.dim_num==3:
         apply_stencil_decompress_3d(args,stencil_manager)
     elif args.dim_num==2:
         apply_stencil_decompress_2d(args,stencil_manager)

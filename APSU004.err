@@ -1,0 +1,14 @@
+/u/zjian1/ASTZ/starter.py:148: RuntimeWarning: overflow encountered in scalar subtract
+  average_psnr=10*np.log10(((global_data_max-global_data_min)**2)/average_mse)
+/u/zjian1/ASTZ/starter.py:166: RuntimeWarning: overflow encountered in scalar subtract
+  average_psnr=10*np.log10(((global_data_max-global_data_min)**2)/average_mse)
+/u/zjian1/ASTZ/starter.py:184: RuntimeWarning: overflow encountered in scalar subtract
+  average_psnr=10*np.log10(((global_data_max-global_data_min)**2)/average_mse)
+/u/zjian1/ASTZ/starter.py:202: RuntimeWarning: overflow encountered in scalar subtract
+  average_psnr=10*np.log10(((global_data_max-global_data_min)**2)/average_mse)
+Traceback (most recent call last):
+  File "/u/zjian1/ASTZ/starter.py", line 141, in <module>
+    cr,psnr=call_py_compress(project_directory_path,original_file_path,data_type,block_shape,rel_eb_str,"FHDE",FHDE_threshold,stencil_path)
+  File "/u/zjian1/ASTZ/py_code/starter_functions/call_py_compress.py", line 18, in call_py_compress
+    cr=float(output.split("\n")[-5].split(" ")[-2])
+ValueError: could not convert string to float: 'in'

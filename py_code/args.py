@@ -15,6 +15,7 @@ class args_c:
         parser.add_argument("-o",dest="data_decompressed_path",type=str)
         parser.add_argument("-c",dest="stencil_path",type=str)
         parser.add_argument("-E",dest="err",nargs="+")
+        parser.add_argument("-4",dest="data_shape",nargs=4,type=int)
         parser.add_argument("-3",dest="data_shape",nargs=3,type=int)
         parser.add_argument("-2",dest="data_shape",nargs=2,type=int)
         parser.add_argument("-1",dest="data_shape",nargs=1,type=int)
@@ -34,7 +35,10 @@ class args_c:
         self.data_compressed_path=parser_results.data_compressed_path
         self.data_decompressed_path=parser_results.data_decompressed_path
         self.stencil_path=parser_results.stencil_path
-        if len(parser_results.data_shape)==3:
+        if len(parser_results.data_shape)==4:
+            self.dim_num=4
+            self.data_shape=[parser_results.data_shape[0],parser_results.data_shape[1],parser_results.data_shape[2],parser_results.data_shape[3]]
+        elif len(parser_results.data_shape)==3:
             self.dim_num=3
             self.data_shape=[parser_results.data_shape[0],parser_results.data_shape[1],parser_results.data_shape[2]]
         elif len(parser_results.data_shape)==2:
@@ -62,6 +66,7 @@ class args_c:
             else:
                 raise ValueError("No available GPU!")
         self.analysis=parser_results.analysis
+        self.output_decompressed_data=False
 
         self.data_min:float=0
         self.data_max:float=0
@@ -80,6 +85,14 @@ class args_c:
 
         self.pivot_ratio=2**17
         self.eb_tune_ratio=0.95
+        if self.dim_num==4:
+            self.model_block_step=[16,16,16,16]
+            self.pos=torch.zeros([1,5]+self.model_block_step).float()
+            self.pos[0,0]=torch.arange(self.model_block_step[0]).view(-1,1,1,1).expand(self.model_block_step)*2/(self.model_block_step[0]-1)-1
+            self.pos[0,1]=torch.arange(self.model_block_step[1]).view(1,-1,1,1).expand(self.model_block_step)*2/(self.model_block_step[1]-1)-1
+            self.pos[0,2]=torch.arange(self.model_block_step[2]).view(1,1,-1,1).expand(self.model_block_step)*2/(self.model_block_step[2]-1)-1
+            self.pos[0,3]=torch.arange(self.model_block_step[3]).view(1,1,1,-1).expand(self.model_block_step)*2/(self.model_block_step[3]-1)-1
+            self.pos[0,4]=1
         if self.dim_num==3:
             self.model_block_step=[64,64,64]
             self.pos=torch.zeros([1,4]+self.model_block_step).float()
@@ -88,13 +101,16 @@ class args_c:
             self.pos[0,2]=torch.arange(self.model_block_step[2]).view(1,1,-1).expand(self.model_block_step)*2/(self.model_block_step[2]-1)-1
             self.pos[0,3]=1
         elif self.dim_num==2:
-            self.model_block_step=[1024,1024]
+            self.model_block_step=[512,512]
             self.pos=torch.zeros([1,3]+self.model_block_step).float()
             self.pos[0,0]=torch.arange(self.model_block_step[0]).view(-1,1).expand(self.model_block_step)*2/(self.model_block_step[0]-1)-1
             self.pos[0,1]=torch.arange(self.model_block_step[1]).view(1,-1).expand(self.model_block_step)*2/(self.model_block_step[1]-1)-1
             self.pos[0,2]=1
         elif self.dim_num==1:
-            raise NotImplementedError(f"Haven't implemented 1D model yet.")
+            self.model_block_step=[262144]
+            self.pos=torch.zeros([1,2]+self.model_block_step).float()
+            self.pos[0,0]=torch.arange(self.model_block_step[0]).view(-1).expand(self.model_block_step)*2/(self.model_block_step[0]-1)-1
+            self.pos[0,1]=1
         self.min_reference_num=1
         # for SDRBENCH-EXAFEL min_reference_num=15
         self.regularization_a=1e-4

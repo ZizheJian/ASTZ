@@ -1,3 +1,10 @@
 131.671 401754.281 7.826 4.024 11.049 4.617 10.305 4.439 10.305 4.439 
 11.049 4.617 
 11.841 4.410 
+astz tencent/Hunyuan-4B-Instruct 10.589 5.973
+astz tencent/Hunyuan-4B-Instruct 11.607 6.173
+astz tencent/Hunyuan-4B-Instruct 10.202 5.862
+astz Qwen/Qwen3-4B-Base 0.007 11.055 4.674
+astz tencent/Hunyuan-4B-Instruct 0.0057 11.299 6.149
+astz tencent/Hunyuan-4B-Instruct 0.0056 11.199 6.068
+astz Qwen/Qwen3-4B-Base 0.006 10.308 4.816

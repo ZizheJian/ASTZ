@@ -1,0 +1,8 @@
+/u/zjian1/ASTZ/starter.py:159: RuntimeWarning: overflow encountered in scalar subtract
+  average_psnr=10*np.log10(((global_data_max-global_data_min)**2)/average_mse)
+/u/zjian1/ASTZ/starter.py:177: RuntimeWarning: overflow encountered in scalar subtract
+  average_psnr=10*np.log10(((global_data_max-global_data_min)**2)/average_mse)
+/u/zjian1/ASTZ/starter.py:195: RuntimeWarning: overflow encountered in scalar subtract
+  average_psnr=10*np.log10(((global_data_max-global_data_min)**2)/average_mse)
+/u/zjian1/ASTZ/starter.py:213: RuntimeWarning: overflow encountered in scalar subtract
+  average_psnr=10*np.log10(((global_data_max-global_data_min)**2)/average_mse)

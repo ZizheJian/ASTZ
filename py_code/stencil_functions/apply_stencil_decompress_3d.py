@@ -127,13 +127,8 @@ def apply_stencil_decompress_3d(args:args_c,stencil_manager:stencil_manager_c):
 
     if args.analysis:
         read_dataset(args)
-        if args.data_type_str=="ui16":
-            temp_data=restore_data_range(args.data,args).round()
-            temp_data_decompressed=restore_data_range(args.data_decompressed,args).round()
-        else:
-            temp_data=restore_data_range(args.data,args)
-            temp_data_decompressed=restore_data_range(args.data_decompressed,args)
-        print(temp_data.min().item(),temp_data.max().item(),temp_data_decompressed.min().item(),temp_data_decompressed.max().item())
+        temp_data=restore_data_range(args.data,args)
+        temp_data_decompressed=restore_data_range(args.data_decompressed,args)
         print(f"max_err= {(temp_data-temp_data_decompressed).abs().max().item():.3f}")
         print(f"max_rel_err= {((temp_data-temp_data_decompressed).abs().max().item()/(args.data_max-args.data_min)):.3f}")
         mse=((temp_data-temp_data_decompressed)**2).mean().item()

@@ -65,8 +65,6 @@ def apply_stencil_compress_gpu_2d(args:args_c,stencil_manager:stencil_manager_c)
             cur_block=cur_block_pad[:,:,padding:-padding,padding:-padding]
             mask_block=mask_block_pad[:,:,padding:-padding,padding:-padding]
             blockify_records.append((block_id,block_pos,cur_block,tgt_block,mask_block))
-            if mask_block[0,1].sum().item()==0:
-                raise NotImplementedError("Compression for blocks with no prediction target is not implemented.")
             mat_X_baseline=torch.cat((torch.ones(param_num-args.pos.shape[1],device=args.device)/(param_num-args.pos.shape[1]),
                                       torch.zeros(args.pos.shape[1],device=args.device)),dim=0)
             mat_A[block_id],mat_B[block_id]=generate_matAB_gpu_2d(cur_block_ext,tgt_block,mask_block,mask_core,max_tgt_num,param_num,args)
@@ -82,7 +80,7 @@ def apply_stencil_compress_gpu_2d(args:args_c,stencil_manager:stencil_manager_c)
         mat_X=lstsq_result.solution
         mat_X_bin,mat_X=quantize_parameter_with_baseline(mat_X,mat_X_baseline.reshape(1,1,-1).expand_as(mat_X),args)
         args.parameters.append(mat_X_bin)
-        mat_H=torch.matmul(mat_A[:,:,:-param_num],mat_X.unsqueeze(-1)).squeeze(-1)
+        mat_H=(torch.matmul(mat_A[:,:,:-param_num],mat_X.unsqueeze(-1)).squeeze(-1)).clamp(-1,1)
         for block_id,block_pos,cur_block,tgt_block,mask_block in blockify_records:
             tgt_num=mask_block[:,1].sum().item()
             h_block=cur_block.clone()
@@ -93,12 +91,7 @@ def apply_stencil_compress_gpu_2d(args:args_c,stencil_manager:stencil_manager_c)
             elif stencil_id in [213]:
                 seq=(0,1,3,2)
             quantize_block=quantize_tensor(tgt_block-h_block,mask_block[:,1:2],current_eb)
-            cur_block[mask_block[:,1:2]]=h_block[mask_block[:,1:2]]+quantize_block[mask_block[:,1:2]]*2*current_eb
-            irr_mask=(quantize_block.abs()>32767)
-            args.pivot[args.pivot_num:args.pivot_num+irr_mask.sum().item()]=tgt_block[irr_mask]
-            args.pivot_num+=irr_mask.sum().item()
-            cur_block[irr_mask]=tgt_block[irr_mask]
-            quantize_block[irr_mask]=-32768
+            cur_block[mask_block[:,1:2]]=(h_block[mask_block[:,1:2]]+quantize_block[mask_block[:,1:2]]*2*current_eb).clamp(-1,1)
             cur_data[:,:,block_pos[0]:block_pos[0]+args.model_block_step[0],
                          block_pos[1]:block_pos[1]+args.model_block_step[1]]=cur_block
             args.qb_begin=args.qb_end
@@ -142,6 +135,9 @@ def apply_stencil_compress_gpu_2d(args:args_c,stencil_manager:stencil_manager_c)
     ######## Zstd ########
     cctx=zstd.ZstdCompressor()
     args.zstd_bs=cctx.compress(hf_bs)
+
+    if args.output_decompressed_data:
+        args.data_decompressed=restore_data_range(cur_data[0,0],args)
 
     if args.analysis:
         print(f"Huffman CR= {args.data_shape[0]*args.data_shape[1]*args.unit_size/len(hf_bs):.3f}")

@@ -1,0 +1,8 @@
+/u/zjian1/ASTZ/starter.py:156: RuntimeWarning: overflow encountered in scalar subtract
+  average_mse+=mse
+/u/zjian1/ASTZ/starter.py:174: RuntimeWarning: overflow encountered in scalar subtract
+  total_compressed_file_size+=1/cr
+/u/zjian1/ASTZ/starter.py:192: RuntimeWarning: overflow encountered in scalar subtract
+  total_compressed_file_size+=1/cr
+/u/zjian1/ASTZ/starter.py:210: RuntimeWarning: overflow encountered in scalar subtract
+  total_compressed_file_size+=1/cr

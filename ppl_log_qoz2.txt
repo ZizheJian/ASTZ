@@ -1,2 +1,25 @@
 23.651 17.399
 7.315 4.1118.095 4.256 8.827 3.971 11.971 5.120 10.077 4.418 10.692 4.666 
+qoz2 tencent/Hunyuan-4B-Instruct 9.747 6.331
+qoz2 tencent/Hunyuan-4B-Instruct 8.930 5.834
+qoz2 tencent/Hunyuan-4B-Instruct 9.425 6.114
+qoz2 tencent/Hunyuan-4B-Instruct 9.340 6.086
+qoz2 tencent/Hunyuan-4B-Instruct 546.939 63.891
+qoz2 tencent/Hunyuan-4B-Instruct 8.930 5.834
+qoz2 tencent/Hunyuan-4B-Instruct 9.508 6.502
+qoz2 tencent/Hunyuan-4B-Instruct 9.257 6.170
+qoz2 tencent/Hunyuan-4B-Instruct 9.669 6.318
+qoz2 Qwen/Qwen3-4B-Base 0.005 8.827 3.971
+qoz2 tencent/Hunyuan-4B-Instruct 9.590 6.531
+qoz2 tencent/Hunyuan-4B-Instruct 9.174 6.182
+qoz2 tencent/Hunyuan-4B-Instruct 9.091 5.961
+qoz2 Qwen/Qwen3-4B-Base 0.006 9.468 4.325
+qoz2 tencent/Hunyuan-4B-Instruct 9.009 5.936
+qoz2 Qwen/Qwen3-4B-Base 0.0075 10.332 4.512
+qoz2 Qwen/Qwen3-4B-Base 0.0079 10.627 4.417
+qoz2 Qwen/Qwen3-4B-Base 0.0078 10.562 4.462
+qoz2 Qwen/Qwen3-4B-Base 0.0077 10.497 4.433
+qoz2 Qwen/Qwen3-4B-Base 0.0076 10.411 4.405
+qoz2 Qwen/Qwen3-4B-Base 0.0074 10.312 4.485
+qoz2 Qwen/Qwen3-4B-Base 0.0073 10.220 4.714
+qoz2 Qwen/Qwen3-4B-Base 0.0072 10.166 4.456

@@ -137,6 +137,8 @@ def apply_stencil_compress_3d(args:args_c,stencil_manager:stencil_manager_c):
     cctx=zstd.ZstdCompressor()
     args.zstd_bs=cctx.compress(hf_bs)
 
+    # print(qb_freqs[-2],qb_freqs[-1],qb_freqs[0],qb_freqs[1],qb_freqs[2])
+
     if args.analysis:
         print(f"Huffman CR= {args.data_shape[0]*args.data_shape[1]*args.data_shape[2]*args.unit_size/len(hf_bs):.3f}")
         print(f"Zstd CR= {len(hf_bs)/len(args.zstd_bs):.3f}")
@@ -151,9 +153,3 @@ def apply_stencil_compress_3d(args:args_c,stencil_manager:stencil_manager_c):
         mse=((temp_data-temp_data_decompressed)**2).mean().item()
         psnr=10*math.log10((args.data_max-args.data_min)**2/mse)
         print(f"\033[31mpsnr= {psnr:.3f} \033[0m")
-        with open(qb_path,"wb") as f:
-            (args.qb+32768).numpy().tofile(f)
-        freq=torch.bincount(args.qb+32768,minlength=65536)
-        with open(freq_path,"w") as f:
-            for i in range(65536):
-                f.write(str(i)+" "+str(freq[i].item())+"\n")

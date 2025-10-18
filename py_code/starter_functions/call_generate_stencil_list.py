@@ -15,3 +15,4 @@ def call_generate_stencil_list(project_directory_path:str,data_path:str,data_typ
     command+=f"-M {method} {FHDE_threshold} "
     print(f"command= {command}")
     print_and_return_stdout(command)
+    return stencil_path

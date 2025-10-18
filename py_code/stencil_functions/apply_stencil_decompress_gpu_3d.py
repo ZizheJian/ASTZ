@@ -106,8 +106,8 @@ def apply_stencil_decompress_gpu_3d(args:args_c,stencil_manager:stencil_manager_
             mat_A,_=generate_matAB_gpu_3d(cur_block_ext,None,mask_block,mask_core,tgt_num,param_num,args)
             mat_X_bin=args.parameters[:param_num]
             args.parameters=args.parameters[param_num:]
-            mat_X=dequantize_parameter_with_baseline(mat_X_bin,mat_X_baseline,args)
-            mat_H=mat_A[:-param_num]@mat_X
+            mat_X=mat_X_baseline+args.parameter_eb*mat_X_bin*2
+            mat_H=(mat_A[:-param_num]@mat_X).clamp(-1,1)
             cur_block[mask_block[:,1:2]]=mat_H
             seq=(0,1,2,3,4)
             if stencil_id in [411,211,212,251]:
@@ -120,9 +120,7 @@ def apply_stencil_decompress_gpu_3d(args:args_c,stencil_manager:stencil_manager_
             args.qb_begin=args.qb_end
             args.qb_end+=tgt_num
             quantize_block.permute(seq)[mask_block[:,1:2].permute(seq)]=args.qb[args.qb_begin:args.qb_end]
-            irr_mask=(quantize_block==-32768)
-            cur_block+=dequantize_tensor(quantize_block,current_eb)
-            cur_block[irr_mask]=args.pivot[args.pivot_num:args.pivot_num+irr_mask.sum().item()]
+            cur_block=(cur_block+quantize_block*2*current_eb).clamp(-1,1)
             cur_data[:,:,block_id[0]:block_id[0]+args.model_block_step[0],
                          block_id[1]:block_id[1]+args.model_block_step[1],
                          block_id[2]:block_id[2]+args.model_block_step[2]]=cur_block
@@ -133,13 +131,8 @@ def apply_stencil_decompress_gpu_3d(args:args_c,stencil_manager:stencil_manager_
     if args.analysis:
         read_dataset(args)
         args.data=args.data.to(args.device)
-        if args.data_type_str=="ui16":
-            temp_data=restore_data_range(args.data,args).round().clamp(0,65535)
-            temp_data_decompressed=restore_data_range(args.data_decompressed,args).round().clamp(0,65535)
-        else:
-            temp_data=restore_data_range(args.data,args)
-            temp_data_decompressed=restore_data_range(args.data_decompressed,args)
-        print(temp_data.min().item(),temp_data.max().item(),temp_data_decompressed.min().item(),temp_data_decompressed.max().item())
+        temp_data=restore_data_range(args.data,args)
+        temp_data_decompressed=restore_data_range(args.data_decompressed,args)
         print(f"max_err= {(temp_data-temp_data_decompressed).abs().max().item():.3f}")
         print(f"max_rel_err= {((temp_data-temp_data_decompressed).abs().max().item()/(args.data_max-args.data_min)):.3f}")
         mse=((temp_data-temp_data_decompressed)**2).mean().item()

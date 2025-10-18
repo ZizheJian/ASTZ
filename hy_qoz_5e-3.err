@@ -1,0 +1,4 @@
+  File "/u/zjian1/ASTZ/test_transformer_ppl.py", line 37
+    if 
+       ^
+SyntaxError: invalid syntax
